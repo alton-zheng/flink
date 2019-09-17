@@ -1,6 +1,8 @@
 ## Apache Flink 1.9.0 Release Announcement
 2019年8月22日
 
+---
+
 Apache Flink社区自豪地宣布了Apache Flink 1.9.0的发布。
 
 Apache Flink项目的目标是开发一个流处理系统来统一和支持多种形式的实时和离线数据处理应用程序以及事件驱动的应用程序。在这个版本中，通过在一个统一的运行时下集成Flink的流和批处理功能，我们在这方面向前迈出了一大步。
@@ -13,7 +15,11 @@ Apache Flink项目的目标是开发一个流处理系统来统一和支持多�
 
 请在Flink邮件列表或JIRA中下载该版本并与社区分享您的想法。一如既往，非常感谢您的反馈!
 
+---
+
 ### New Features and improvements
+
+---
 
 #### Fine-grained Batch Recovery(FLIP-1)
 
@@ -29,6 +35,8 @@ Apache Flink项目的目标是开发一个流处理系统来统一和支持多�
 
 “Region”故障转移策略还改进了`embarrassingly parallel`流作业的恢复，即，没有任何像keyBy()或重新平衡这样的混乱。当恢复这样的作业时，只重新启动受影响`pipeline`(`failover region`)的任务。对于所有其他流作业，恢复行为与之前的Flink版本相同。
 
+---
+
 #### State Processor API (FLIP-43)
 
 在Flink 1.9之前，从外部访问作业的状态仅限于(仍然)实验性的可查询状态。该版本引入了一个新的功能强大的库，可以使用`batch DataSet API`读取、写入和修改状态快照。实际上，这意味着:
@@ -39,6 +47,8 @@ Apache Flink项目的目标是开发一个流处理系统来统一和支持多�
 - 可以识别和纠正保存点中的无效数据。
 
 新的状态处理器API涵盖快照的所有变体:`savepoints`、`fill checkpoints`和`incremental checkpoints`。更多细节可以在[FLIP-43](https://cwiki.apache.org/confluence/display/FLINK/FLIP-43%3A+State+Processor+API)中找到
+
+---
 
 #### Stop-with-Savepoint (FLIP-34)
 
@@ -52,6 +62,8 @@ bin/flink stop -p [:targetDirectory] :jobId
 
 更多细节可以在[FLIP-34](https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=103090212)中找到
 
+---
+
 #### Flink WebUI Rework
 
 在讨论了Flink的WebUI内部的现代化之后，这个组件使用`Angular`的最新稳定版本进行了重构——基本上是`Angular` 1.x 到 7.x 版本的一个改进。重新设计的版本是1.9.0中的默认版本，但是有一个链接可以切换到旧的WebUI。
@@ -61,6 +73,8 @@ bin/flink stop -p [:targetDirectory] :jobId
 ![release-19-web2](../images/release-19-web2.png)
 
 注意:web ui 往后的版本对WebUI老版本的功能奇偶性将不会得到保证。
+
+---
 
 #### Preview of the new Blink SQL Query Processor
 
@@ -114,6 +128,7 @@ bin/flink stop -p [:targetDirectory] :jobId
 
 到目前为止，Flink SQL只支持DML语句(例如`SELECT`、`INSERT`)。外部表(表源和表接收器)必须通过Java/Scala代码或配置文件注册。对于1.9，我们添加了对SQL DDL语句的支持，以注册和删除表和视图(创建表、删除表)。但是，我们还没有添加特定于流的语法扩展来定义时间戳提取和水印生成。计划在下一个版本中全面支持流用例。
 
+--- 
 #### Preview of Full Hive Integration ([FLINK-10556](https://issues.apache.org/jira/browse/FLINK-10556))
 
 Apache Hive在Hadoop的生态系统中被广泛地用于存储和查询大量的结构化数据。除了是一个查询处理器，Hive还提供一个名为Metastore的目录来管理和组织大型数据集。查询处理器的一个常见集成点是与Hive的Metastore集成，以便能够访问Hive管理的数据。
@@ -124,11 +139,15 @@ Apache Hive在Hadoop的生态系统中被广泛地用于存储和查询大量的
 
 请注意，Flink 1.9中的Hive支持是实验性的。我们计划在下一个版本中稳定这些特性，并期待您的反馈。
 
+---
+
 #### Preview of the new Python Table API ([FLIP-38](https://cwiki.apache.org/confluence/display/FLINK/FLIP-38%3A+Python+Table+API))
 
 这个版本还引入了Python `Table API`的第一个版本(FLIP-38)。这标志着我们朝着将成熟的Python支持引入Flink的目标迈进了一步。该特性被设计为一个围绕表API的瘦Python API包装器，基本上将Python`Table API`方法调用转换为Java表API调用。在Flink 1.9附带的最初版本中，Python`Table APi`还不支持udf，只支持标准的关系操作。Python中实现的对udf的支持是未来版本的路线图。
 
 如果您想尝试新的`Python API`，您必须手动安装`PyFlink`。从那里，您可以查看此演练或自己探索它。社区目前正在准备一个`pyflink Python`包，可以通过`pip`安装。
+
+---
 
 ### Important Changes
 
@@ -137,9 +156,13 @@ Apache Hive在Hadoop的生态系统中被广泛地用于存储和查询大量的
 旧的DataSet和DataStream Python api已被删除，取而代之的是[FLIP-38](https://cwiki.apache.org/confluence/display/FLINK/FLIP-38%3A+Python+Table+API)。
 Flink可以在`Java 9`上编译和运行。注意，与外部系统(连接器、文件系统、记者)交互的某些组件可能无法工作，因为各自的项目可能跳过了Java 9支持。
 
+---
+
 ### Release Notes
 
 如果您计划将Flink安装升级到Flink 1.9.0，请查看发布说明，以获得更详细的更改和新特性列表。
+
+---
 
 ### List of Contributors
 
