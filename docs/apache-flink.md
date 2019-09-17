@@ -39,10 +39,10 @@
 - 内存计算
 
 **以上知识概述在下面链接都有介绍：**
-- [usecases](docs/usecases.md)
-- [flink-applications](docs/flink-applications.md)
-- [flink-operations](docs/flink-operations.md)
-- [flink-architecture](docs/flink-architecture.md)
+- [usecases](usecases.md)
+- [flink-applications](flink-applications.md)
+- [flink-operations](flink-operations.md)
+- [flink-architecture](flink-architecture.md)
 
 
 ---
