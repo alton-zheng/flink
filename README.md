@@ -140,19 +140,25 @@ Email: alton_z@outlook.com
 
 - DataType
   - `JSON`
-  
+ 
+---
+ 
 - `table`
   - 分析表
   
+---
   
 - `aggInfo` : 主表 `group by` 相关信息, 罗闯设计讲解，略
   - `col_name`: `group by` 列
   - `composit`： 自定义`group by` 列信息（case when ...)
   - `amotic`  : 主表自带 `group by` 列
-  
+
+---  
   
 - `conditions`
   - 与之前版本一致，这里不作介绍，公共特性, 略
+
+---
 
 ```json
 {
@@ -201,10 +207,14 @@ Email: alton_z@outlook.com
 }
 ```
 
+---
+
 ### Output:
 
 - DataType
   - `JSON`
+
+---
 
 #### Success:
 ```json
@@ -237,6 +247,8 @@ Email: alton_z@outlook.com
 }
 ```
 
+---
+
 #### Failure:
 ```json
 {
@@ -259,30 +271,38 @@ Email: alton_z@outlook.com
 #### URL
 - `http://ip:port/dcei/analysis/accurate/query`
 
+---
+
 #### JSON Format
 
 - DataType
   - `JSON`
-  
+ 
+----
+ 
 - `table`
   - 分析表
   
+---
   
 - `aggInfo` : 主表 `group by` 相关信息, 罗闯设计讲解，略
   - `col_name`: `group by` 列
   - `composit`： 自定义`group by` 列信息（case when ...)
   - `amotic`  : 主表自带 `group by` 列
   
+---
    
 - `crowdId`
   - 副表，内部对应各自的分区
 
+---
 
 - `crowdIdType`
   - 人群ID 类型
     - `"1"` 带双引号
     - `1`: ID_NO, `2`: mobile, `3`: wxid, ..."
 
+---
 
 ```json
 {
@@ -330,11 +350,16 @@ Email: alton_z@outlook.com
 }
 ```
 
+---
 
 ### Output:
 
+---
+
 - DataType
   - `JSON`
+
+---
 
 #### Success:
 ```json
@@ -369,6 +394,8 @@ Email: alton_z@outlook.com
 }
 ```
 
+---
+
 #### Failure:
 ```json
 {
@@ -383,6 +410,8 @@ Email: alton_z@outlook.com
   }
 }
 ```
+
+---
 
 ## 内部实现方案
 
