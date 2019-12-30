@@ -5,7 +5,7 @@
 ## 所有流式应用场景
 - 事件驱动应用
 - 流批分析
-- 数据管道 & ETL
+- `Data Pipelines` & `ETL`
 
 ---
 ## 正确性保证
@@ -22,14 +22,14 @@
 ---
 ## 焦距运维
 - 灵活部署
-- 高可用
-- 保存点
+- HA
+- `SavePoints`
 
 ---
 ## 大规模计算
 - 水平扩展架构
 - 支持超大状态
-- 增量检查点机制
+- 增量 `checkpoint` 机制
 
 
 ---
@@ -213,15 +213,20 @@ Telefónica NEXT的 TÜV 认证数据匿名平台由 Flink 提供支持。
 [Link](https://jobs.zalando.com/tech/blog/complex-event-generation-for-business-process-monitoring-using-apache-flink)
 
 ---
-## 最新博客,只列出2个，其它博客请关注官网
+## 最新博客,只列出几个，其它博客请关注官网
 - 状态处理器API:如何读取、写入和修改Flink应用程序的状态
 这篇文章探讨了状态处理器API,介绍了Flink 1.9.0,为什么这个功能是Flink一大步,你可以使用它,如何使用它和探索一些未来的发展方向,使功能与Apache Flink进化成一个统一的批处理和流处理系统。
 
-[官方 Link](https://flink.apache.org/feature/2019/09/13/state-processor-api.html)
-[中文 Link](../docs/state-processor-api.md)
+- [官方 Link](https://flink.apache.org/feature/2019/09/13/state-processor-api.html)
+- [中文 Link](state-processor-api.md)
 
 Apache Flink 1.9.0发布公告
 Apache Flink社区自豪地宣布了Apache Flink 1.9.0的发布。
 
-[官方 Link](https://flink.apache.org/feature/2019/09/13/state-processor-api.html)
-[中文 Link](../docs/release-1.9.0.md)
+- [官方 Link](https://flink.apache.org/feature/2019/09/13/state-processor-api.html)
+- [中文 Link](release-1.9.0.md)
+
+使用 Flink 查询 `Pulsar` 流
+
+- [官方 Link](https://flink.apache.org/news/2019/11/25/query-pulsar-streams-using-apache-flink.html)
+- [中文 Link]()

@@ -11,9 +11,7 @@ Apache Flink项目的目标是开发一个流处理系统来统一和支持多�
 
 这篇博客文章描述了所有主要的新特性和改进，需要注意的重要变化以及未来的发展方向。有关更多细节，请查看[完整的版本更改日志](https://issues.apache.org/jira/secure/ReleaseNote.jspa?projectId=12315522&version=12344601)。
 
-这个版本的二进制发行版和源代码工件现在可以通过Flink项目的下载页面以及更新的文档获得。Flink 1.9与之前的1兼容api。为使用@Public注释的api发布x版本。
-
-请在Flink邮件列表或JIRA中下载该版本并与社区分享您的想法。一如既往，非常感谢您的反馈!
+这个版本的二进制发行版和 `source artifacts` 现在可以通过Flink项目的下载页面以及更新的文档获得。Flink 1.9与之前的1兼容api。为使用@Public注释的api发布x版本。
 
 ---
 
@@ -24,6 +22,7 @@ Apache Flink项目的目标是开发一个流处理系统来统一和支持多�
 #### Fine-grained Batch Recovery(FLIP-1)
 
 从任务失败中恢复批处理作业(数据集、表API和SQL)的时间显著减少。在Flink 1.9之前，通过取消所有任务并重新启动整个作业来恢复批作业中的任务失败。这项工作是从零开始的，所有的进步都付诸东流。有了这个版本，Flink可以配置为将恢复限制在同一故障转移区域中的那些任务。故障转移区域是通过管道数据交换连接的一组任务。因此，作业的批处理洗牌连接定义了其故障转移区域的边界。更多细节可以在[FLIP-1](https://cwiki.apache.org/confluence/display/FLINK/FLIP-1+%3A+Fine+Grained+Recovery+from+Task+Failures)中找到。
+
 ![release-19-flip1](../images/release-19-flip1.png)
 
 要使用这种新的故障转移策略，您需要执行以下设置:
