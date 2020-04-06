@@ -1,0 +1,14 @@
+current directory: /Users/alton/Documents/profile/book/Flink/Flink/docs/.rubydeps/ruby/2.6.0/gems/json-2.2.0/ext/json
+/System/Library/Frameworks/Ruby.framework/Versions/2.6/usr/bin/ruby -I /System/Library/Frameworks/Ruby.framework/Versions/2.6/usr/lib/ruby/2.6.0 -r ./siteconf20200406-25338-151uwhr.rb extconf.rb
+/System/Library/Frameworks/Ruby.framework/Versions/2.6/usr/lib/ruby/2.6.0/universal-darwin19/rbconfig.rb:229: warning: Insecure world writable dir /Users/alton/Documents/profile/book in PATH, mode 040777
+creating Makefile
+
+current directory: /Users/alton/Documents/profile/book/Flink/Flink/docs/.rubydeps/ruby/2.6.0/gems/json-2.2.0/ext/json
+make "DESTDIR=" clean
+
+current directory: /Users/alton/Documents/profile/book/Flink/Flink/docs/.rubydeps/ruby/2.6.0/gems/json-2.2.0/ext/json
+make "DESTDIR="
+make: Nothing to be done for `all'.
+
+current directory: /Users/alton/Documents/profile/book/Flink/Flink/docs/.rubydeps/ruby/2.6.0/gems/json-2.2.0/ext/json
+make "DESTDIR=" install
