@@ -45,170 +45,164 @@ Email: alton_z@outlook.com
       - [ ] [生成时间戳/水印](docs/dev/event_timestamps_watermarks.md)
       - [ ] [预先定义的时间戳提取器/水印发射器](docs/dev/event_timestamp_extractors.md)
       
-    - [状态与容错]
-
-      - [ ] [概览](docs/dev/stream/state/overview.md)
+    - 状态与容错
+      - [ ] [概览](docs/dev/stream/state/index.md)
       - [x] [Working with State](docs/dev/stream/state/state.md)
       - [ ] [Broadcast State 模式](docs/dev/stream/state/broadcast_state.md)
       - [x] [Checkpointing](docs/dev/stream/state/checkpointing.md)
       - [ ] [可查询状态](docs/dev/stream/state/queryable_state.md)
       - [x] [State Backends](docs/dev/stream/state/state_backends.md)
-      - [状态数据结构升级](docs/dev/stream/state/schema_evolution.md)
-      - [自定义状态序列化](docs/dev/stream/state/custom_serialization.md)
+      - [x] [状态数据结构升级](docs/dev/stream/state/schema_evolution.md)
+      - [ ] [自定义状态序列化](docs/dev/stream/state/custom_serialization.md)
 
-    - [算子](docs/dev/stream/state/state.md#collapse-52)
+    - 算子
+      - [ ] [概览](docs/dev/stream/operators/operators.md)
+      - [ ] [窗口](docs/dev/stream/operators/windows.md)
+      - [ ] [Joining](docs/dev/stream/operators/joining.md)
+      - [ ] [Process Function](docs/dev/stream/operators/process_function.md)
+      - [x] [异步 I/O](docs/dev/stream/operators/asyncio.md)
 
-      - [概览](docs/dev/stream/operators/)
-      - [窗口](docs/dev/stream/operators/windows.md)
-      - [Joining](docs/dev/stream/operators/joining.md)
-      - [Process Function](docs/dev/stream/operators/process_function.md)
-      - [异步 I/O](docs/dev/stream/operators/asyncio.md)
+    - Connectors
+      - [x] [概览](docs/dev/connectors/connectors.md)
+      - [x] [容错保证](docs/dev/connectors/guarantees.md)
+      - [x] [Kafka](docs/dev/connectors/kafka.md)
+      - [ ] [Cassandra](docs/dev/connectors/cassandra.md)
+      - [ ] [Kinesis](docs/dev/connectors/kinesis.md)
+      - [ ] [Elasticsearch](docs/dev/connectors/elasticsearch.md)
+      - [x] [Hadoop FileSystem](docs/dev/connectors/filesystem_sink.md)
+      - [x] [Streaming File Sink](docs/dev/connectors/streamfile_sink.md)
+      - [x] [RabbitMQ](docs/dev/connectors/rabbitmq.md)
+      - [x] [NiFi](docs/dev/connectors/nifi.md)
+      - [ ] [Google Cloud PubSub](docs/dev/connectors/pubsub.md)
+      - [x] [Twitter](docs/dev/connectors/twitter.md)
 
-    - [Connectors](docs/dev/stream/state/state.md#collapse-58)
+    - [ ] [Side Outputs](docs/dev/stream/side_output.md)
+    - [ ] [测试](docs/dev/stream/testing.md)
+    - [ ] [实验功能](docs/dev/stream/experimental.md)
 
-      - [概览](docs/dev/connectors/)
-      - [容错保证](docs/dev/connectors/guarantees.md)
-      - [Kafka](docs/dev/connectors/kafka.md)
-      - [Cassandra](docs/dev/connectors/cassandra.md)
-      - [Kinesis](docs/dev/connectors/kinesis.md)
-      - [Elasticsearch](docs/dev/connectors/elasticsearch.md)
-      - [Hadoop FileSystem](docs/dev/connectors/filesystem_sink.md)
-      - [Streaming File Sink](docs/dev/connectors/streamfile_sink.md)
-      - [RabbitMQ](docs/dev/connectors/rabbitmq.md)
-      - [NiFi](docs/dev/connectors/nifi.md)
-      - [Google Cloud PubSub](docs/dev/connectors/pubsub.md)
-      - [Twitter](docs/dev/connectors/twitter.md)
+  - Batch (DataSet API)
 
-    - [Side Outputs](docs/dev/stream/side_output.md)
-    - [测试](docs/dev/stream/testing.md)
-    - [实验功能](docs/dev/stream/experimental.md)
+    - [ ] [概览](docs/dev/batch/)
+    - [ ] [Transformations](docs/dev/batch/dataset_transformations.md)
+    - [ ] [迭代](docs/dev/batch/iterations.md)
+    - [ ] [Zipping Elements](docs/dev/batch/zip_elements_guide.md)
+    - [ ] [连接器](docs/dev/batch/connectors.md)
+    - [ ] [Hadoop 兼容](docs/dev/batch/hadoop_compatibility.md)
+    - [ ] [本地执行](docs/dev/local_execution.md)
+    - [ ] [集群执行](docs/dev/cluster_execution.md)
 
-  - [Batch (DataSet API)](docs/dev/stream/state/state.md#collapse-75)
+  - Table API & SQL
 
-    - [概览](docs/dev/batch/)
-    - [Transformations](docs/dev/batch/dataset_transformations.md)
-    - [迭代](docs/dev/batch/iterations.md)
-    - [Zipping Elements](docs/dev/batch/zip_elements_guide.md)
-    - [连接器](docs/dev/batch/connectors.md)
-    - [Hadoop 兼容](docs/dev/batch/hadoop_compatibility.md)
-    - [本地执行](docs/dev/local_execution.md)
-    - [集群执行](docs/dev/cluster_execution.md)
+    - [ ] [概览](docs/dev/table/)
+    - [ ] [Concepts & Common API](docs/dev/table/common.md)
+    - [ ] [Streaming Concepts](docs/dev/stream/state/state.md#collapse-86)
 
-  - [Table API & SQL](docs/dev/stream/state/state.md#collapse-84)
+      - [ ] [概览](docs/dev/table/streaming/)
+      - [ ] [动态表 (Dynamic Table)](docs/dev/table/streaming/dynamic_tables.md)
+      - [ ] [Time Attributes](docs/dev/table/streaming/time_attributes.md)
+      - [ ] [Joins in Continuous Queries](docs/dev/table/streaming/joins.md)
+      - [ ] [Temporal Tables](docs/dev/table/streaming/temporal_tables.md)
+      - [ ] [Detecting Patterns](docs/dev/table/streaming/match_recognize.md)
+      - [ ] [Query Configuration](docs/dev/table/streaming/query_configuration.md)
 
-    - [概览](docs/dev/table/)
-    - [Concepts & Common API](docs/dev/table/common.md)
-    - [Streaming Concepts](docs/dev/stream/state/state.md#collapse-86)
+    - [ ] [Data Types](docs/dev/table/types.md)
+    - [ ] [Table API](docs/dev/table/tableApi.md)
+    
+    - SQL
 
-      - [概览](docs/dev/table/streaming/)
-      - [动态表 (Dynamic Table)](docs/dev/table/streaming/dynamic_tables.md)
-      - [Time Attributes](docs/dev/table/streaming/time_attributes.md)
-      - [Joins in Continuous Queries](docs/dev/table/streaming/joins.md)
-      - [Temporal Tables](docs/dev/table/streaming/temporal_tables.md)
-      - [Detecting Patterns](docs/dev/table/streaming/match_recognize.md)
-      - [Query Configuration](docs/dev/table/streaming/query_configuration.md)
+      - [x] [概览](docs/dev/table/sql/index.md)
+      - [x] [查询语句](docs/dev/table/sql/queries.md)
+      - [x] [CREATE 语句](docs/dev/table/sql/create.md)
+      - [x] [DROP 语句](docs/dev/table/sql/drop.md)
+      - [x] [ALTER 语句](docs/dev/table/sql/alter.md)
+      - [x] [INSERT 语句](docs/dev/table/sql/insert.md)
 
-    - [Data Types](docs/dev/table/types.md)
-    - [Table API](docs/dev/table/tableApi.md)
-    - [SQL](docs/dev/stream/state/state.md#collapse-96)
+    - [ ] [Connect to External Systems](docs/dev/table/connect.md)
+    - [ ] [Functions](docs/dev/stream/state/state.md#collapse-104)
 
-      - [概览](docs/dev/table/sql/)
-      - [查询语句](docs/dev/table/sql/queries.md)
-      - [CREATE 语句](docs/dev/table/sql/create.md)
-      - [DROP 语句](docs/dev/table/sql/drop.md)
-      - [ALTER 语句](docs/dev/table/sql/alter.md)
-      - [INSERT 语句](docs/dev/table/sql/insert.md)
+      - [ ] [概览](docs/dev/table/functions/)
+      - [ ] [系统（内置）函数](docs/dev/table/functions/systemFunctions.md)
+      - [ ] [自定义函数](docs/dev/table/functions/udfs.md)
 
-    - [Connect to External Systems](docs/dev/table/connect.md)
-    - [Functions](docs/dev/stream/state/state.md#collapse-104)
+    - [ ] [模块](docs/dev/table/modules.md)
+    - [ ] [Catalogs](docs/dev/table/catalogs.md)
+    - [ ] [SQL 客户端](docs/dev/table/sqlClient.md)
+    - [ ] [Python Table API](docs/dev/stream/state/state.md#collapse-111)
 
-      - [概览](docs/dev/table/functions/)
-      - [系统（内置）函数](docs/dev/table/functions/systemFunctions.md)
-      - [自定义函数](docs/dev/table/functions/udfs.md)
+      - [ ] [概览](docs/dev/table/python/)
+      - [ ] [环境安装](docs/dev/table/python/installation.md)
+      - [ ] [自定义函数](docs/dev/table/python/python_udfs.md)
+      - [ ] [依赖管理](docs/dev/table/python/dependency_management.md)
+      - [ ] [配置](docs/dev/table/python/python_config.md)
 
-    - [模块](docs/dev/table/modules.md)
-    - [Catalogs](docs/dev/table/catalogs.md)
-    - [SQL 客户端](docs/dev/table/sqlClient.md)
-    - [Python Table API](docs/dev/stream/state/state.md#collapse-111)
+    - Hive Integration
 
-      - [概览](docs/dev/table/python/)
-      - [环境安装](docs/dev/table/python/installation.md)
-      - [自定义函数](docs/dev/table/python/python_udfs.md)
-      - [依赖管理](docs/dev/table/python/dependency_management.md)
-      - [配置](docs/dev/table/python/python_config.md)
+      - [ ] [概览](docs/dev/table/hive/)
+      - [ ] [HiveCatalog](docs/dev/table/hive/hive_catalog.md)
+      - [ ] [Reading & Writing Hive Tables](docs/dev/table/hive/read_write_hive.md)
+      - [ ] [Hive functions](docs/dev/table/hive/hive_functions.md)
+      - [ ] [Use Hive connector in scala shell](docs/dev/table/hive/scala_shell_hive.md)
 
-    - [Hive Integration](docs/dev/stream/state/state.md#collapse-117)
+    - [ ] [配置](docs/dev/table/config.md)
+    - [ ] [Performance Tuning](docs/dev/stream/state/state.md#collapse-124)
 
-      - [概览](docs/dev/table/hive/)
-      - [HiveCatalog](docs/dev/table/hive/hive_catalog.md)
-      - [Reading & Writing Hive Tables](docs/dev/table/hive/read_write_hive.md)
-      - [Hive functions](docs/dev/table/hive/hive_functions.md)
-      - [Use Hive connector in scala shell](docs/dev/table/hive/scala_shell_hive.md)
+      - [ ] [Streaming Aggregation](docs/dev/table/tuning/streaming_aggregation_optimization.md)
 
-    - [配置](docs/dev/table/config.md)
-    - [Performance Tuning](docs/dev/stream/state/state.md#collapse-124)
+    - [ ] [User-defined Sources & Sinks](docs/dev/table/sourceSinks.md)
 
-      - [Streaming Aggregation](docs/dev/table/tuning/streaming_aggregation_optimization.md)
+  - 数据类型以及序列化
 
-    - [User-defined Sources & Sinks](docs/dev/table/sourceSinks.md)
+    - [x] [概览](docs/dev/types_serialization.md)
+    - [x] [自定义序列化器](docs/dev/custom_serializers.md)
 
-  - [数据类型以及序列化](docs/dev/stream/state/state.md#collapse-129)
+  - 管理执行
 
-    - [概览](docs/dev/types_serialization.md)
-    - [自定义序列化器](docs/dev/custom_serializers.md)
+    - [ ] [执行配置](docs/dev/execution_configuration.md)
+    - [ ] [程序打包](docs/dev/packaging.md)
+    - [x] [并行执行](docs/dev/parallel.md)
+    - [ ] [Execution Plans](docs/dev/execution_plans.md)
+    - [x] [Task 故障恢复](docs/dev/task_failure_recovery.md)
 
-  - [管理执行](docs/dev/stream/state/state.md#collapse-132)
+  - 类库
+    - [ ] [事件处理 (CEP)](docs/dev/libs/cep.md)
+    - [ ] [State Processor API](docs/dev/libs/state_processor_api.md)
+    
+    - 图计算: Gelly
+      - [ ] [概览](docs/dev/libs/gelly/)
+      - [ ] [Graph API](docs/dev/libs/gelly/graph_api.md)
+      - [ ] [Iterative Graph Processing](docs/dev/libs/gelly/iterative_graph_processing.md)
+      - [ ] [Library Methods](docs/dev/libs/gelly/library_methods.md)
+      - [ ] [Graph Algorithms](docs/dev/libs/gelly/graph_algorithms.md)
+      - [ ] [Graph Generators](docs/dev/libs/gelly/graph_generators.md)
+      - [ ] [Bipartite Graph](docs/dev/libs/gelly/bipartite_graph.md)
 
-    - [执行配置](docs/dev/execution_configuration.md)
-    - [程序打包](docs/dev/packaging.md)
-    - [并行执行](docs/dev/parallel.md)
-    - [Execution Plans](docs/dev/execution_plans.md)
-    - [Task 故障恢复](docs/dev/task_failure_recovery.md)
+  - [ ] [API 迁移指南](docs/dev/migration.md)
 
-  - [类库](docs/dev/stream/state/state.md#collapse-139)
+- 部署与运维
 
-    - [事件处理 (CEP)](docs/dev/libs/cep.md)
-    - [State Processor API](docs/dev/libs/state_processor_api.md)
-    - [图计算: Gelly](docs/dev/stream/state/state.md#collapse-142)
+  - 集群与部署
+    - [ ] [独立集群](docs/ops/deployment/cluster_setup.md)
+    - [ ] [YARN](docs/ops/deployment/yarn_setup.md)
+    - [ ] [Mesos](docs/ops/deployment/mesos.md)
+    - [ ] [Docker](docs/ops/deployment/docker.md)
+    - [ ] [Kubernetes](docs/ops/deployment/kubernetes.md)
+    - [ ] [Native Kubernetes](docs/ops/deployment/native_kubernetes.md)
+    - [ ] [Hadoop 集成](docs/ops/deployment/hadoop.md)
 
-      - [概览](docs/dev/libs/gelly/)
-      - [Graph API](docs/dev/libs/gelly/graph_api.md)
-      - [Iterative Graph Processing](docs/dev/libs/gelly/iterative_graph_processing.md)
-      - [Library Methods](docs/dev/libs/gelly/library_methods.md)
-      - [Graph Algorithms](docs/dev/libs/gelly/graph_algorithms.md)
-      - [Graph Generators](docs/dev/libs/gelly/graph_generators.md)
-      - [Bipartite Graph](docs/dev/libs/gelly/bipartite_graph.md)
-
-  - [API 迁移指南](docs/dev/migration.md)
-
-- [  部署与运维](docs/dev/stream/state/state.md#collapse-153)
-
-  - [集群与部署](docs/dev/stream/state/state.md#collapse-154)
-
-    - [独立集群](docs/ops/deployment/cluster_setup.md)
-    - [YARN](docs/ops/deployment/yarn_setup.md)
-    - [Mesos](docs/ops/deployment/mesos.md)
-    - [Docker](docs/ops/deployment/docker.md)
-    - [Kubernetes](docs/ops/deployment/kubernetes.md)
-    - [Native Kubernetes](docs/ops/deployment/native_kubernetes.md)
-    - [Hadoop 集成](docs/ops/deployment/hadoop.md)
-
-  - [高可用 (HA)](docs/ops/jobmanager_high_availability.md)
-  - [状态与容错](docs/dev/stream/state/state.md#collapse-164)
-
-    - [Checkpoints](docs/ops/state/checkpoints.md)
-    - [Savepoints](docs/ops/state/savepoints.md)
-    - [State Backends](docs/ops/state/state_backends.md)
-    - [大状态与 Checkpoint 调优](docs/ops/state/large_state_tuning.md)
+  - [ ] [高可用 (HA)](docs/ops/jobmanager_high_availability.md)
+  - 状态与容错
+    - [x] [Checkpoints](docs/ops/state/checkpoints.md)
+    - [x] [Savepoints](docs/ops/state/savepoints.md)
+    - [x] [State Backends](docs/ops/state/state_backends.md)
+    - [ ] [大状态与 Checkpoint 调优](docs/ops/state/large_state_tuning.md)
 
   - [配置参数](docs/ops/config.md)
-  - [内存配置](docs/dev/stream/state/state.md#collapse-171)
-
-    - [配置 TaskExecutor 内存](docs/ops/memory/mem_setup.md)
-    - [内存模型详解](docs/ops/memory/mem_detail.md)
-    - [调优指南](docs/ops/memory/mem_tuning.md)
-    - [常见问题](docs/ops/memory/mem_trouble.md)
-    - [升级指南](docs/ops/memory/mem_migration.md)
+  - 内存配置
+    - [x] [配置 TaskExecutor 内存](docs/ops/memory/mem_setup.md)
+    - [x] [内存模型详解](docs/ops/memory/mem_detail.md)
+    - [x] [调优指南](docs/ops/memory/mem_tuning.md)
+    - [x] [常见问题](docs/ops/memory/mem_trouble.md)
+    - [x] [升级指南](docs/ops/memory/mem_migration.md)
 
   - [生产就绪情况核对清单](docs/ops/production_ready.md)
   - [CLI](docs/ops/cli.md)
@@ -227,7 +221,7 @@ Email: alton_z@outlook.com
   - [升级应用程序和 Flink 版本](docs/ops/upgrading.md)
   - [Plugins](docs/ops/plugins.md)
 
-- [  调试和监控](docs/dev/stream/state/state.md#collapse-193)
+- 调试和监控
 
   - [指标](docs/monitoring/metrics.md)
   - [日志](docs/monitoring/logging.md)

@@ -2,16 +2,6 @@
 
 本文档主要介绍如何在 Flink 作业中使用状态
 
-- [Keyed State 与 Operator State](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/state/state.html#keyed-state-%E4%B8%8E-operator-state)
-  - [Keyed State](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/state/state.html#keyed-state)
-  - [Operator State](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/state/state.html#operator-state)
-- [Raw State 与 Managed State](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/state/state.html#raw-state-%E4%B8%8E-managed-state)
-- [使用 Managed Keyed State](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/state/state.html#%E4%BD%BF%E7%94%A8-managed-keyed-state)
-  - [状态有效期 (TTL)](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/state/state.html#%E7%8A%B6%E6%80%81%E6%9C%89%E6%95%88%E6%9C%9F-ttl)
-  - [DataStream 状态相关的 Scala API](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/state/state.html#datastream-%E7%8A%B6%E6%80%81%E7%9B%B8%E5%85%B3%E7%9A%84-scala-api)
-- [使用 Managed Operator State](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/state/state.html#%E4%BD%BF%E7%94%A8-managed-operator-state)
-  - [带状态的 Source Function](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/state/state.html#%E5%B8%A6%E7%8A%B6%E6%80%81%E7%9A%84-source-function)
-
 ## Keyed State 与 Operator State
 
 Flink 中有两种基本的状态：`Keyed State`  和  `Operator State`。
