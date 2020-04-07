@@ -204,48 +204,48 @@ Email: alton_z@outlook.com
     - [x] [常见问题](docs/ops/memory/mem_trouble.md)
     - [x] [升级指南](docs/ops/memory/mem_migration.md)
 
-  - [生产就绪情况核对清单](docs/ops/production_ready.md)
-  - [CLI](docs/ops/cli.md)
-  - [Python REPL](docs/ops/python_shell.md)
-  - [Scala REPL](docs/ops/scala_shell.md)
-  - [Kerberos](docs/ops/security-kerberos.md)
-  - [SSL 配置](docs/ops/security-ssl.md)
-  - [File Systems](docs/dev/stream/state/state.md#collapse-184)
+  - [ ] [生产就绪情况核对清单](docs/ops/production_ready.md)
+  - [ ] [CLI](docs/ops/cli.md)
+  - [x] [Python REPL](docs/ops/python_shell.md)
+  - [ ] [Scala REPL](docs/ops/scala_shell.md)
+  - [ ] [Kerberos](docs/ops/security-kerberos.md)
+  - [ ] [SSL 配置](docs/ops/security-ssl.md)
+  - [ ] [File Systems](docs/dev/stream/state/state.md#collapse-184)
 
-    - [概览](docs/ops/filesystems/)
-    - [Common Configurations](docs/ops/filesystems/common.md)
-    - [Amazon S3](docs/ops/filesystems/s3.md)
-    - [Aliyun OSS](docs/ops/filesystems/oss.md)
-    - [Azure Blob Storage](docs/ops/filesystems/azure.md)
+    - [ ] [概览](docs/ops/filesystems/)
+    - [ ] [Common Configurations](docs/ops/filesystems/common.md)
+    - [x] [Amazon S3](docs/ops/filesystems/s3.md)
+    - [ ] [Aliyun OSS](docs/ops/filesystems/oss.md)
+    - [ ] [Azure Blob Storage](docs/ops/filesystems/azure.md)
 
-  - [升级应用程序和 Flink 版本](docs/ops/upgrading.md)
-  - [Plugins](docs/ops/plugins.md)
+  - [ ] [升级应用程序和 Flink 版本](docs/ops/upgrading.md)
+  - [ ] [Plugins](docs/ops/plugins.md)
 
 - 调试和监控
 
-  - [指标](docs/monitoring/metrics.md)
-  - [日志](docs/monitoring/logging.md)
-  - [History Server](docs/monitoring/historyserver.md)
-  - [监控 Checkpoint](docs/monitoring/checkpoint_monitoring.md)
-  - [监控反压](docs/monitoring/back_pressure.md)
-  - [监控 REST API](docs/monitoring/rest_api.md)
-  - [调试窗口与事件时间](docs/monitoring/debugging_event_time.md)
-  - [调试类加载](docs/monitoring/debugging_classloading.md)
-  - [应用程序分析](docs/monitoring/application_profiling.md)
+  - [ ] [指标](docs/monitoring/metrics.md)
+  - [ ] [日志](docs/monitoring/logging.md)
+  - [ ] [History Server](docs/monitoring/historyserver.md)
+  - [ ] [监控 Checkpoint](docs/monitoring/checkpoint_monitoring.md)
+  - [x] [监控反压](docs/monitoring/back_pressure.md)
+  - [ ] [监控 REST API](docs/monitoring/rest_api.md)
+  - [ ] [调试窗口与事件时间](docs/monitoring/debugging_event_time.md)
+  - [ ] [调试类加载](docs/monitoring/debugging_classloading.md)
+  - [ ] [应用程序分析](docs/monitoring/application_profiling.md)
 
 ---
 
-- [ Flink 开发](docs/dev/stream/state/state.md#collapse-204)
+- Flink 开发
 
-  - [导入 Flink 到 IDE 中](docs/flinkDev/ide_setup.md)
-  - [从源码构建 Flink](docs/flinkDev/building.md)
+  - [ ] [导入 Flink 到 IDE 中](docs/flinkDev/ide_setup.md)
+  - [ ] [从源码构建 Flink](docs/flinkDev/building.md)
 
-- [  内幕](docs/dev/stream/state/state.md#collapse-208)
+- 内幕
 
-  - [组件堆栈](docs/internals/components.md)
-  - [数据流容错](docs/internals/stream_checkpointing.md)
-  - [作业调度](docs/internals/job_scheduling.md)
-  - [Task 生命周期](docs/internals/task_lifecycle.md)
-  - [文件系统](docs/internals/filesystems.md)
+  - [ ] [组件堆栈](docs/internals/components.md)
+  - [ ] [数据流容错](docs/internals/stream_checkpointing.md)
+  - [x] [作业调度](docs/internals/job_scheduling.md)
+  - [ ] [Task 生命周期](docs/internals/task_lifecycle.md)
+  - [ ] [文件系统](docs/internals/filesystems.md)
 
 
