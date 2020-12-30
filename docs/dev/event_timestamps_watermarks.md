@@ -1,58 +1,132 @@
-# Generating Timestamps / Watermarks
-本节与在事件时间运行的程序相关。有关事件时间、处理时间和摄入时间的介绍，请参阅事件时间介绍。
+---
+title: "Generating Watermarks"
+nav-parent_id: event_time
+nav-pos: 1
+---
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
 
-为了处理事件时间，流媒体程序需要相应地设置时间特性。
+  http://www.apache.org/licenses/LICENSE-2.0
 
-```java
-final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
-```
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
 
-## Assigning Timestamps
+In this section you will learn about the APIs that Flink provides for working
+with **event time** timestamps and watermarks.  For an introduction to *event
+time*, *processing time*, and *ingestion time*, please refer to the
+[introduction to event time]({% link dev/event_time.md %}).
 
-为了处理事件时间，Flink需要知道事件的时间戳，这意味着流中的每个元素都需要分配其事件时间戳。这通常通过访问/从元素中的某个字段中提取时间戳来实现。
+* toc
+{:toc}
 
-时间戳分配与生成水印密切相关，后者告诉系统事件时间的进展情况。
+## Introduction to Watermark Strategies
 
-有两种方法来分配时间戳和生成水印:
+In order to work with *event time*, Flink needs to know the events
+*timestamps*, meaning each element in the stream needs to have its event
+timestamp *assigned*. This is usually done by accessing/extracting the
+timestamp from some field in the element by using a `TimestampAssigner`.
 
-1. 直接在数据流源中
-2. 通过时间戳分配程序/水印生成器:在Flink中，时间戳分配程序还定义要发出的水印
+Timestamp assignment goes hand-in-hand with generating watermarks, which tell
+the system about progress in event time. You can configure this by specifying a
+`WatermarkGenerator`.
 
-注意，从1970-01-01T00:00:00Z的Java纪元开始，时间戳和水印都指定为毫秒。
+The Flink API expects a `WatermarkStrategy` that contains both a
+`TimestampAssigner` and `WatermarkGenerator`.  A number of common strategies
+are available out of the box as static methods on `WatermarkStrategy`, but
+users can also build their own strategies when required. 
 
-### Source Functions with Timestamps and Watermarks
-流源可以直接为它们生成的元素分配时间戳，还可以发出水印。完成此操作后，不需要时间戳分配程序。注意，如果使用时间戳转让者，则会覆盖源提供的任何时间戳和水印。
+Here is the interface for completeness' sake:
 
-要直接向源中的元素分配时间戳，源必须在SourceContext上使用collectWithTimestamp(…)方法。要生成水印，源程序必须调用emit水印(水印)函数。
+{% highlight java %}
+public interface WatermarkStrategy<T> extends TimestampAssignerSupplier<T>, WatermarkGeneratorSupplier<T>{
 
-下面是一个分配时间戳和生成水印的(非检查点)源的简单示例:
+    /**
+     * Instantiates a {@link TimestampAssigner} for assigning timestamps according to this
+     * strategy.
+     */
+    @Override
+    TimestampAssigner<T> createTimestampAssigner(TimestampAssignerSupplier.Context context);
 
-```java
-@Override
-public void run(SourceContext<MyType> ctx) throws Exception {
-	while (/* condition */) {
-		MyType next = getNext();
-		ctx.collectWithTimestamp(next, next.getEventTimestamp());
-
-		if (next.hasWatermarkTime()) {
-			ctx.emitWatermark(new Watermark(next.getWatermarkTime()));
-		}
-	}
+    /**
+     * Instantiates a WatermarkGenerator that generates watermarks according to this strategy.
+     */
+    @Override
+    WatermarkGenerator<T> createWatermarkGenerator(WatermarkGeneratorSupplier.Context context);
 }
-```
+{% endhighlight %}
 
-### Timestamp Assigners / Watermark Generators
+As mentioned, you usually don't implement this interface yourself but use the
+static helper methods on `WatermarkStrategy` for common watermark strategies or
+to bundle together a custom `TimestampAssigner` with a `WatermarkGenerator`.
+For example, to use bounded-out-of-orderness watermarks and a lambda function as a
+timestamp assigner you use this:
 
-时间戳分配程序获取一个流并生成一个带有时间戳元素和水印的新流。如果原始流已经具有时间戳和/或水印，则时间戳分配者将覆盖它们。
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
+WatermarkStrategy
+        .<Tuple2<Long, String>>forBoundedOutOfOrderness(Duration.ofSeconds(20))
+        .withTimestampAssigner((event, timestamp) -> event.f0);
+{% endhighlight %}
+</div>
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
+WatermarkStrategy
+  .forBoundedOutOfOrderness[(Long, String)](Duration.ofSeconds(20))
+  .withTimestampAssigner(new SerializableTimestampAssigner[(Long, String)] {
+    override def extractTimestamp(element: (Long, String), recordTimestamp: Long): Long = element._1
+  })
+{% endhighlight %}
 
-时间戳分配程序通常在数据源之后立即指定，但并不严格要求这样做。例如，一个常见的模式是在时间戳分配程序之前解析(MapFunction)和筛选(FilterFunction)。在任何情况下，需要在事件时间的第一个操作之前指定时间戳分配程序(例如第一个窗口操作)。作为一种特殊情况，当使用Kafka作为流作业的源时，Flink允许在源(或消费者)内部指定时间戳分配者/水印发射器。有关如何做到这一点的更多信息可以在Kafka连接器文档中找到。
+(Using Scala Lambdas here currently doesn't work because Scala is stupid and it's hard to support this. #fus)
+</div>
+</div>
 
-注意:本节的其余部分介绍了程序员必须实现的主要接口，以便创建自己的时间戳提取器/水印发射器。要查看附带Flink的预实现提取器，请参阅预定义时间戳提取器/水印发射器页面。
+Specifying a `TimestampAssigner` is optional and in most cases you don't
+actually want to specify one. For example, when using Kafka or Kinesis you
+would get timestamps directly from the Kafka/Kinesis records.
 
-```java
+We will look at the `WatermarkGenerator` interface later in [Writing
+WatermarkGenerators](#writing-watermarkgenerators).
+
+<div class="alert alert-warning">
+<strong>Attention</strong>: Both timestamps and watermarks
+are specified as milliseconds since the Java epoch of 1970-01-01T00:00:00Z.
+</div>
+
+## Using Watermark Strategies
+
+There are two places in Flink applications where a `WatermarkStrategy` can be
+used: 1) directly on sources and 2) after non-source operation.
+
+The first option is preferable, because it allows sources to exploit knowledge
+about shards/partitions/splits in the watermarking logic. Sources can usually
+then track watermarks at a finer level and the overall watermark produced by a
+source will be more accurate. Specifying a `WatermarkStrategy` directly on the
+source usually means you have to use a source specific interface/ Refer to
+[Watermark Strategies and the Kafka
+Connector](#watermark-strategies-and-the-kafka-connector) for how this works on
+a Kafka Connector and for more details about how per-partition watermarking
+works there.
+
+The second option (setting a `WatermarkStrategy` after arbitrary operations)
+should only be used if you cannot set a strategy directly on the source:
+
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
 final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 
 DataStream<MyEvent> stream = env.readFile(
         myFormat, myFilePath, FileProcessingMode.PROCESS_CONTINUOUSLY, 100,
@@ -60,47 +134,200 @@ DataStream<MyEvent> stream = env.readFile(
 
 DataStream<MyEvent> withTimestampsAndWatermarks = stream
         .filter( event -> event.severity() == WARNING )
-        .assignTimestampsAndWatermarks(new MyTimestampsAndWatermarks());
+        .assignTimestampsAndWatermarks(<watermark strategy>);
 
 withTimestampsAndWatermarks
         .keyBy( (event) -> event.getGroup() )
-        .timeWindow(Time.seconds(10))
+        .window(TumblingEventTimeWindows.of(Time.seconds(10)))
         .reduce( (a, b) -> a.add(b) )
         .addSink(...);
-```
+{% endhighlight %}
+</div>
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
+val env = StreamExecutionEnvironment.getExecutionEnvironment
+
+val stream: DataStream[MyEvent] = env.readFile(
+         myFormat, myFilePath, FileProcessingMode.PROCESS_CONTINUOUSLY, 100,
+         FilePathFilter.createDefaultFilter())
+
+val withTimestampsAndWatermarks: DataStream[MyEvent] = stream
+        .filter( _.severity == WARNING )
+        .assignTimestampsAndWatermarks(<watermark strategy>)
+
+withTimestampsAndWatermarks
+        .keyBy( _.getGroup )
+        .window(TumblingEventTimeWindows.of(Time.seconds(10)))
+        .reduce( (a, b) => a.add(b) )
+        .addSink(...)
+{% endhighlight %}
+</div>
+</div>
+
+Using a `WatermarkStrategy` this way takes a stream and produce a new stream
+with timestamped elements and watermarks. If the original stream had timestamps
+and/or watermarks already, the timestamp assigner overwrites them.
+
+## Dealing With Idle Sources
+
+If one of the input splits/partitions/shards does not carry events for a while
+this means that the `WatermarkGenerator` also does not get any new information
+on which to base a watermark. We call this an *idle input* or an *idle source*.
+This is a problem because it can happen that some of your partitions do still
+carry events. In that case, the watermark will be held back, because it is
+computed as the minimum over all the different parallel watermarks.
+
+To deal with this, you can use a `WatermarkStrategy` that will detect idleness
+and mark an input as idle. `WatermarkStrategy` provides a convenience helper
+for this:
+
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
+WatermarkStrategy
+        .<Tuple2<Long, String>>forBoundedOutOfOrderness(Duration.ofSeconds(20))
+        .withIdleness(Duration.ofMinutes(1));
+{% endhighlight %}
+</div>
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
+WatermarkStrategy
+  .forBoundedOutOfOrderness[(Long, String)](Duration.ofSeconds(20))
+  .withIdleness(Duration.ofMinutes(1))
+{% endhighlight %}
+</div>
+</div>
 
 
-#### With Periodic Watermarks
+## Writing WatermarkGenerators
 
-使用periodic水印的assignerwithperiodic水印分配时间戳并定期生成水印(可能取决于流元素，或者纯粹基于处理时间)。
+A `TimestampAssigner` is a simple function that extracts a field from an event, we therefore don't need to look at them in detail. A `WatermarkGenerator`, on the other hand, is a bit more complicated to write and we will look at how you can do that in the next two sections. This is the `WatermarkGenerator` interface:
 
-水印生成的间隔(每n毫秒)由ExecutionConfig.setAutoWatermarkInterval(…)定义。每次都会调用转让者的getCurrentWatermark()方法，如果返回的水印是非空的且比前一个水印大，则会发出一个新的水印。
+{% highlight java %}
+/**
+ * The {@code WatermarkGenerator} generates watermarks either based on events or
+ * periodically (in a fixed interval).
+ *
+ * <p><b>Note:</b> This WatermarkGenerator subsumes the previous distinction between the
+ * {@code AssignerWithPunctuatedWatermarks} and the {@code AssignerWithPeriodicWatermarks}.
+ */
+@Public
+public interface WatermarkGenerator<T> {
 
-这里我们展示了两个使用周期性水印生成的时间戳分配程序的简单示例。注意，Flink附带了一个BoundedOutOfOrdernessTimestampExtractor，类似于下面所示的BoundedOutOfOrdernessGenerator，您可以在这里阅读相关内容。
+    /**
+     * Called for every event, allows the watermark generator to examine and remember the
+     * event timestamps, or to emit a watermark based on the event itself.
+     */
+    void onEvent(T event, long eventTimestamp, WatermarkOutput output);
 
-```java
+    /**
+     * Called periodically, and might emit a new watermark, or not.
+     *
+     * <p>The interval in which this method is called and Watermarks are generated
+     * depends on {@link ExecutionConfig#getAutoWatermarkInterval()}.
+     */
+    void onPeriodicEmit(WatermarkOutput output);
+}
+{% endhighlight %}
+
+There are two different styles of watermark generation: *periodic* and
+*punctuated*.
+
+A periodic generator usually observes the incoming events via `onEvent()`
+and then emits a watermark when the framework calls `onPeriodicEmit()`.
+
+A puncutated generator will look at events in `onEvent()` and wait for special
+*marker events* or *punctuations* that carry watermark information in the
+stream. When it sees one of these events it emits a watermark immediately.
+Usually, punctuated generators don't emit a watermark from `onPeriodicEmit()`.
+
+We will look at how to implement generators for each style next.
+
+### Writing a Periodic WatermarkGenerator
+
+A periodic generator observes stream events and generates
+watermarks periodically (possibly depending on the stream elements, or purely
+based on processing time).
+
+The interval (every *n* milliseconds) in which the watermark will be generated
+is defined via `ExecutionConfig.setAutoWatermarkInterval(...)`. The
+generators's `onPeriodicEmit()` method will be called each time, and a new
+watermark will be emitted if the returned watermark is non-null and larger than
+the previous watermark.
+
+Here we show two simple examples of watermark generators that use periodic
+watermark generation. Note that Flink ships with
+`BoundedOutOfOrdernessWatermarks`, which is a `WatermarkGenerator` that works
+similarly to the `BoundedOutOfOrdernessGenerator` shown below. You can read
+about using that [here]({% link dev/event_timestamp_extractors.md %}#assigners-allowing-a-fixed-amount-of-lateness).
+
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
 /**
  * This generator generates watermarks assuming that elements arrive out of order,
  * but only to a certain degree. The latest elements for a certain timestamp t will arrive
  * at most n milliseconds after the earliest elements for timestamp t.
  */
-public class BoundedOutOfOrdernessGenerator implements AssignerWithPeriodicWatermarks<MyEvent> {
+public class BoundedOutOfOrdernessGenerator implements WatermarkGenerator<MyEvent> {
 
     private final long maxOutOfOrderness = 3500; // 3.5 seconds
 
     private long currentMaxTimestamp;
 
     @Override
-    public long extractTimestamp(MyEvent element, long previousElementTimestamp) {
-        long timestamp = element.getCreationTime();
-        currentMaxTimestamp = Math.max(timestamp, currentMaxTimestamp);
-        return timestamp;
+    public void onEvent(MyEvent event, long eventTimestamp, WatermarkOutput output) {
+        currentMaxTimestamp = Math.max(currentMaxTimestamp, eventTimestamp);
     }
 
     @Override
-    public Watermark getCurrentWatermark() {
-        // return the watermark as current highest timestamp minus the out-of-orderness bound
-        return new Watermark(currentMaxTimestamp - maxOutOfOrderness);
+    public void onPeriodicEmit(WatermarkOutput output) {
+        // emit the watermark as current highest timestamp minus the out-of-orderness bound
+        output.emitWatermark(new Watermark(currentMaxTimestamp - maxOutOfOrderness - 1));
+    }
+
+}
+
+/**
+ * This generator generates watermarks that are lagging behind processing time by a fixed amount.
+ * It assumes that elements arrive in Flink after a bounded delay.
+ */
+public class TimeLagWatermarkGenerator implements WatermarkGenerator<MyEvent> {
+
+    private final long maxTimeLag = 5000; // 5 seconds
+
+    @Override
+    public void onEvent(MyEvent event, long eventTimestamp, WatermarkOutput output) {
+        // don't need to do anything because we work on processing time
+    }
+
+    @Override
+    public void onPeriodicEmit(WatermarkOutput output) {
+        output.emitWatermark(new Watermark(System.currentTimeMillis() - maxTimeLag));
+    }
+}
+{% endhighlight %}
+</div>
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
+/**
+ * This generator generates watermarks assuming that elements arrive out of order,
+ * but only to a certain degree. The latest elements for a certain timestamp t will arrive
+ * at most n milliseconds after the earliest elements for timestamp t.
+ */
+class BoundedOutOfOrdernessGenerator extends AssignerWithPeriodicWatermarks[MyEvent] {
+
+    val maxOutOfOrderness = 3500L // 3.5 seconds
+
+    var currentMaxTimestamp: Long = _
+
+    override def onEvent(element: MyEvent, eventTimestamp: Long): Unit = {
+        currentMaxTimestamp = max(eventTimestamp, currentMaxTimestamp)
+    }
+
+    override def onPeriodicEmit(): Unit = {
+        // emit the watermark as current highest timestamp minus the out-of-orderness bound
+        output.emitWatermark(new Watermark(currentMaxTimestamp - maxOutOfOrderness - 1));
     }
 }
 
@@ -108,68 +335,150 @@ public class BoundedOutOfOrdernessGenerator implements AssignerWithPeriodicWater
  * This generator generates watermarks that are lagging behind processing time by a fixed amount.
  * It assumes that elements arrive in Flink after a bounded delay.
  */
-public class TimeLagWatermarkGenerator implements AssignerWithPeriodicWatermarks<MyEvent> {
+class TimeLagWatermarkGenerator extends AssignerWithPeriodicWatermarks[MyEvent] {
 
-	private final long maxTimeLag = 5000; // 5 seconds
+    val maxTimeLag = 5000L // 5 seconds
 
-	@Override
-	public long extractTimestamp(MyEvent element, long previousElementTimestamp) {
-		return element.getCreationTime();
-	}
+    override def onEvent(element: MyEvent, eventTimestamp: Long): Unit = {
+        // don't need to do anything because we work on processing time
+    }
 
-	@Override
-	public Watermark getCurrentWatermark() {
-		// return the watermark as current time minus the maximum time lag
-		return new Watermark(System.currentTimeMillis() - maxTimeLag);
-	}
+    override def onPeriodicEmit(): Unit = {
+        output.emitWatermark(new Watermark(System.currentTimeMillis() - maxTimeLag));
+    }
 }
+{% endhighlight %}
+</div>
+</div>
 
-```
+### Writing a Punctuated WatermarkGenerator
 
-#### With Punctuated Watermarks
+A punctuated watermark generator will observe the stream of
+events and emit a watermark whenever it sees a special element that carries
+watermark information.
 
-当某个事件表明可能生成新水印时，要生成水印，请使用assignerwith标点水印。对于这个类，Flink将首先调用extractTimestamp(…)方法来为元素分配一个时间戳，然后立即调用该元素上的checkAndGetNextWatermark(…)方法。
+This is how you can implement a punctuated generator that emits a watermark
+whenever an event indicates that it carries a certain marker:
 
-checkAndGetNextWatermark(…)方法传递extractTimestamp(…)方法中分配的时间戳，并可以决定是否要生成水印。每当checkAndGetNextWatermark(…)方法返回一个非空水印，并且该水印大于最新的前一个水印时，就会发出该新水印。
-
-```java
-public class PunctuatedAssigner implements AssignerWithPunctuatedWatermarks<MyEvent> {
-
-	@Override
-	public long extractTimestamp(MyEvent element, long previousElementTimestamp) {
-		return element.getCreationTime();
-	}
-
-	@Override
-	public Watermark checkAndGetNextWatermark(MyEvent lastElement, long extractedTimestamp) {
-		return lastElement.hasWatermarkMarker() ? new Watermark(extractedTimestamp) : null;
-	}
-}
-```
-
-注意:可以在每个事件上生成水印。然而，由于每个水印都会导致下游的一些计算，过多的水印会降低性能。
-
-## Timestamps per Kafka Partition
-当使用Apache Kafka作为数据源时，每个Kafka分区可能有一个简单的事件时间模式(升序时间戳或有界外长细)。然而，当使用Kafka的流时，多个分区经常被并行地使用，交叉使用分区中的事件并破坏每个分区的模式(这是Kafka的消费者客户端工作的固有方式)。
-
-在这种情况下，您可以使用Flink的kafka - partii感知水印生成。使用该特性，每个Kafka分区都会在Kafka使用者内部生成水印，每个分区的水印会以与流变换中合并水印相同的方式合并。
-
-例如，如果事件时间戳严格按照Kafka分区升序，那么使用升序时间戳水印生成器生成每个分区的水印将得到完美的整体水印。
-
-下面的插图展示了如何使用每卡夫卡分区生成水印，以及在这种情况下，水印如何通过流数据流传播。
-
-```java
-FlinkKafkaConsumer09<MyType> kafkaSource = new FlinkKafkaConsumer09<>("myTopic", schema, props);
-kafkaSource.assignTimestampsAndWatermarks(new AscendingTimestampExtractor<MyType>() {
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
+public class PunctuatedAssigner implements WatermarkGenerator<MyEvent> {
 
     @Override
-    public long extractAscendingTimestamp(MyType element) {
-        return element.eventTimestamp();
+    public void onEvent(MyEvent event, long eventTimestamp, WatermarkOutput output) {
+        if (event.hasWatermarkMarker()) {
+            output.emitWatermark(new Watermark(event.getWatermarkTimestamp()));
+        }
     }
-});
+
+    @Override
+    public void onPeriodicEmit(WatermarkOutput output) {
+        // don't need to do anything because we emit in reaction to events above
+    }
+}
+{% endhighlight %}
+</div>
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
+class PunctuatedAssigner extends AssignerWithPunctuatedWatermarks[MyEvent] {
+
+    override def onEvent(element: MyEvent, eventTimestamp: Long): Unit = {
+        if (event.hasWatermarkMarker()) {
+            output.emitWatermark(new Watermark(event.getWatermarkTimestamp()))
+        }
+    }
+
+    override def onPeriodicEmit(): Unit = {
+        // don't need to do anything because we emit in reaction to events above
+    }
+}
+{% endhighlight %}
+</div>
+</div>
+
+<div class="alert alert-warning">
+<strong>Note</strong>: It is possible to
+generate a watermark on every single event. However, because each watermark
+causes some computation downstream, an excessive number of watermarks degrades
+performance.
+</div>
+
+## Watermark Strategies and the Kafka Connector
+
+When using [Apache Kafka](connectors/kafka.html) as a data source, each Kafka
+partition may have a simple event time pattern (ascending timestamps or bounded
+out-of-orderness). However, when consuming streams from Kafka, multiple
+partitions often get consumed in parallel, interleaving the events from the
+partitions and destroying the per-partition patterns (this is inherent in how
+Kafka's consumer clients work).
+
+In that case, you can use Flink's Kafka-partition-aware watermark generation.
+Using that feature, watermarks are generated inside the Kafka consumer, per
+Kafka partition, and the per-partition watermarks are merged in the same way as
+watermarks are merged on stream shuffles.
+
+For example, if event timestamps are strictly ascending per Kafka partition,
+generating per-partition watermarks with the [ascending timestamps watermark
+generator](event_timestamp_extractors.html#assigners-with-ascending-timestamps)
+will result in perfect overall watermarks. Note, that we don't provide a
+`TimestampAssigner` in the example, the timestamps of the Kafka records
+themselves will be used instead.
+
+The illustrations below show how to use the per-Kafka-partition watermark
+generation, and how watermarks propagate through the streaming dataflow in that
+case.
+
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
+FlinkKafkaConsumer<MyType> kafkaSource = new FlinkKafkaConsumer<>("myTopic", schema, props);
+kafkaSource.assignTimestampsAndWatermarks(
+        WatermarkStrategy.
+                .forBoundedOutOfOrderness(Duration.ofSeconds(20)));
 
 DataStream<MyType> stream = env.addSource(kafkaSource);
-```
+{% endhighlight %}
+</div>
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
+val kafkaSource = new FlinkKafkaConsumer[MyType]("myTopic", schema, props)
+kafkaSource.assignTimestampsAndWatermarks(
+  WatermarkStrategy
+    .forBoundedOutOfOrderness(Duration.ofSeconds(20)))
 
-![parallel_kafka_watermarks](../images/parallel_kafka_watermarks.svg)
+val stream: DataStream[MyType] = env.addSource(kafkaSource)
+{% endhighlight %}
+</div>
+</div>
 
+<img src="{% link /fig/parallel_kafka_watermarks.svg %}" alt="Generating Watermarks with awareness for Kafka-partitions" class="center" width="80%" />
+
+## How Operators Process Watermarks
+
+As a general rule, operators are required to completely process a given
+watermark before forwarding it downstream. For example, `WindowOperator` will
+first evaluate all windows that should be fired, and only after producing all of
+the output triggered by the watermark will the watermark itself be sent
+downstream. In other words, all elements produced due to occurrence of a
+watermark will be emitted before the watermark.
+
+The same rule applies to `TwoInputStreamOperator`. However, in this case the
+current watermark of the operator is defined as the minimum of both of its
+inputs.
+
+The details of this behavior are defined by the implementations of the
+`OneInputStreamOperator#processWatermark`,
+`TwoInputStreamOperator#processWatermark1` and
+`TwoInputStreamOperator#processWatermark2` methods.
+
+## The Deprecated AssignerWithPeriodicWatermarks and AssignerWithPunctuatedWatermarks
+
+Prior to introducing the current abstraction of `WatermarkStrategy`,
+`TimestampAssigner`, and `WatermarkGenerator`, Flink used
+`AssignerWithPeriodicWatermarks` and `AssignerWithPunctuatedWatermarks`. You will
+still see them in the API but it is recommended to use the new interfaces
+because they offer a clearer separation of concerns and also unify periodic and
+punctuated styles of watermark generation.
+
+{% top %}

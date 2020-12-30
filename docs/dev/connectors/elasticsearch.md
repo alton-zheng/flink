@@ -1,4 +1,30 @@
-# Elasticsearch Connector
+---
+title: "Elasticsearch Connector"
+nav-title: Elasticsearch
+nav-parent_id: connectors
+nav-pos: 4
+---
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+* This will be replaced by the TOC
+{:toc}
 
 This connector provides sinks that can request document actions to an
 [Elasticsearch](https://elastic.co/) Index. To use this connector, add one
@@ -33,7 +59,7 @@ of the Elasticsearch installation:
 </table>
 
 Note that the streaming connectors are currently not part of the binary
-distribution. See [here]({{site.baseurl}}/dev/projectsetup/dependencies.html) for information
+distribution. See [here]({% link dev/project-configuration.md %}) for information
 about how to package the program with the libraries for cluster execution.
 
 ## Installing Elasticsearch
@@ -50,8 +76,9 @@ Elasticsearch cluster.
 
 The example below shows how to configure and create a sink:
 
-- Java, Elasticsearch 2.x / 5.x
-```java
+<div class="codetabs" markdown="1">
+<div data-lang="java, 5.x" markdown="1">
+{% highlight java %}
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.connectors.elasticsearch.ElasticsearchSinkFunction;
@@ -83,64 +110,21 @@ input.addSink(new ElasticsearchSink<>(config, transportAddresses, new Elasticsea
     public IndexRequest createIndexRequest(String element) {
         Map<String, String> json = new HashMap<>();
         json.put("data", element);
-
+    
         return Requests.indexRequest()
                 .index("my-index")
                 .type("my-type")
                 .source(json);
     }
-
+    
     @Override
     public void process(String element, RuntimeContext ctx, RequestIndexer indexer) {
         indexer.add(createIndexRequest(element));
     }
-}));
-```
-
-- Scala, Elasticsearch 2.x / 5.x
-```scala
-import org.apache.flink.api.common.functions.RuntimeContext
-import org.apache.flink.streaming.api.datastream.DataStream
-import org.apache.flink.streaming.connectors.elasticsearch.ElasticsearchSinkFunction
-import org.apache.flink.streaming.connectors.elasticsearch.RequestIndexer
-import org.apache.flink.streaming.connectors.elasticsearch5.ElasticsearchSink
-
-import org.elasticsearch.action.index.IndexRequest
-import org.elasticsearch.client.Requests
-
-import java.net.InetAddress
-import java.net.InetSocketAddress
-import java.util.ArrayList
-import java.util.HashMap
-import java.util.List
-import java.util.Map
-
-val input: DataStream[String] = ...
-
-val config = new java.util.HashMap[String, String]
-config.put("cluster.name", "my-cluster-name")
-// This instructs the sink to emit after every element, otherwise they would be buffered
-config.put("bulk.flush.max.actions", "1")
-
-val transportAddresses = new java.util.ArrayList[InetSocketAddress]
-transportAddresses.add(new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 9300))
-transportAddresses.add(new InetSocketAddress(InetAddress.getByName("10.2.3.1"), 9300))
-
-input.addSink(new ElasticsearchSink(config, transportAddresses, new ElasticsearchSinkFunction[String] {
-  def createIndexRequest(element: String): IndexRequest = {
-    val json = new java.util.HashMap[String, String]
-    json.put("data", element)
-
-    return Requests.indexRequest()
-            .index("my-index")
-            .type("my-type")
-            .source(json)
-  }
-}))
-```
-
-- Java, Elasticsearch 6.x and above
-```java
+}));{% endhighlight %}
+</div>
+<div data-lang="java, Elasticsearch 6.x and above" markdown="1">
+{% highlight java %}
 import org.apache.flink.api.common.functions.RuntimeContext;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.connectors.elasticsearch.ElasticsearchSinkFunction;
@@ -169,13 +153,13 @@ ElasticsearchSink.Builder<String> esSinkBuilder = new ElasticsearchSink.Builder<
         public IndexRequest createIndexRequest(String element) {
             Map<String, String> json = new HashMap<>();
             json.put("data", element);
-
+        
             return Requests.indexRequest()
                     .index("my-index")
                     .type("my-type")
                     .source(json);
         }
-
+        
         @Override
         public void process(String element, RuntimeContext ctx, RequestIndexer indexer) {
             indexer.add(createIndexRequest(element));
@@ -198,10 +182,10 @@ esSinkBuilder.setRestClientFactory(
 
 // finally, build and add the sink to the job's pipeline
 input.addSink(esSinkBuilder.build());
-```
-
-- Scala, Elasticsearch 6.x and above
-```scala
+{% endhighlight %}
+</div>
+<div data-lang="scala, 5.x" markdown="1">
+{% highlight scala %}
 import org.apache.flink.api.common.functions.RuntimeContext
 import org.apache.flink.streaming.api.datastream.DataStream
 import org.apache.flink.streaming.connectors.elasticsearch.ElasticsearchSinkFunction
@@ -233,14 +217,71 @@ input.addSink(new ElasticsearchSink(config, transportAddresses, new Elasticsearc
   def createIndexRequest(element: String): IndexRequest = {
     val json = new java.util.HashMap[String, String]
     json.put("data", element)
-
+    
     return Requests.indexRequest()
             .index("my-index")
             .type("my-type")
             .source(json)
   }
 }))
-```
+{% endhighlight %}
+</div>
+<div data-lang="scala, Elasticsearch 6.x and above" markdown="1">
+{% highlight scala %}
+import org.apache.flink.api.common.functions.RuntimeContext
+import org.apache.flink.streaming.api.datastream.DataStream
+import org.apache.flink.streaming.connectors.elasticsearch.ElasticsearchSinkFunction
+import org.apache.flink.streaming.connectors.elasticsearch.RequestIndexer
+import org.apache.flink.streaming.connectors.elasticsearch6.ElasticsearchSink
+
+import org.apache.http.HttpHost
+import org.elasticsearch.action.index.IndexRequest
+import org.elasticsearch.client.Requests
+
+import java.util.ArrayList
+import java.util.List
+
+val input: DataStream[String] = ...
+
+val httpHosts = new java.util.ArrayList[HttpHost]
+httpHosts.add(new HttpHost("127.0.0.1", 9200, "http"))
+httpHosts.add(new HttpHost("10.2.3.1", 9200, "http"))
+
+val esSinkBuilder = new ElasticsearchSink.Builder[String](
+  httpHosts,
+  new ElasticsearchSinkFunction[String] {
+     def process(element: String, ctx: RuntimeContext, indexer: RequestIndexer) {
+          val json = new java.util.HashMap[String, String]
+          json.put("data", element)
+
+          val rqst: IndexRequest = Requests.indexRequest
+            .index("my-index")
+            .`type`("my-type")
+            .source(json)
+
+          indexer.add(rqst)
+     } 
+  }
+)
+
+// configuration for the bulk requests; this instructs the sink to emit after every element, otherwise they would be buffered
+esSinkBuilder.setBulkFlushMaxActions(1)
+
+// provide a RestClientFactory for custom configuration on the internally created REST client
+esSinkBuilder.setRestClientFactory(new RestClientFactory {
+  override def configureRestClientBuilder(restClientBuilder: RestClientBuilder): Unit = {
+       restClientBuilder.setDefaultHeaders(...)
+       restClientBuilder.setMaxRetryTimeoutMillis(...)
+       restClientBuilder.setPathPrefix(...)
+       restClientBuilder.setHttpClientConfigCallback(...)
+  }
+})
+
+// finally, build and add the sink to the job's pipeline
+input.addSink(esSinkBuilder.build)
+{% endhighlight %}
+</div>
+</div>
 
 For Elasticsearch versions that still uses the now deprecated `TransportClient` to communicate
 with the Elasticsearch cluster (i.e., versions equal or below 5.x), note how a `Map` of `String`s
@@ -253,13 +294,13 @@ the name of your cluster.
 
 For Elasticsearch 6.x and above, internally, the `RestHighLevelClient` is used for cluster communication.
 By default, the connector uses the default configurations for the REST client. To have custom
-configuration for the REST client, users can provide a `RestClientFactory` implementation when
+configuration for the REST client, users can provide a `RestClientFactory` implementation when 
 setting up the `ElasticsearchClient.Builder` that builds the sink.
 
 Also note that the example only demonstrates performing a single index
 request for each incoming element. Generally, the `ElasticsearchSinkFunction`
 can be used to perform multiple requests of different types (ex.,
-`DeleteRequest`, `UpdateRequest`, etc.).
+`DeleteRequest`, `UpdateRequest`, etc.). 
 
 Internally, each parallel instance of the Flink Elasticsearch Sink uses
 a `BulkProcessor` to send action requests to the cluster.
@@ -276,19 +317,24 @@ time of checkpoints. This effectively assures that all requests before the
 checkpoint was triggered have been successfully acknowledged by Elasticsearch, before
 proceeding to process more records sent to the sink.
 
-More details on checkpoints and fault tolerance are in the [fault tolerance docs]({{site.baseurl}}/internals/stream_checkpointing.html).
+More details on checkpoints and fault tolerance are in the [fault tolerance docs]({% link learn-flink/fault_tolerance.md %}).
 
 To use fault tolerant Elasticsearch Sinks, checkpointing of the topology needs to be enabled at the execution environment:
 
-```java
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
 final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 env.enableCheckpointing(5000); // checkpoint every 5000 msecs
-```
-
-```scala
+{% endhighlight %}
+</div>
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
 val env = StreamExecutionEnvironment.getExecutionEnvironment()
 env.enableCheckpointing(5000) // checkpoint every 5000 msecs
-```
+{% endhighlight %}
+</div>
+</div>
 
 <p style="border-radius: 5px; padding: 5px" class="bg-danger">
 <b>NOTE</b>: Users can disable flushing if they wish to do so, by calling
@@ -307,7 +353,9 @@ providing it to the constructor.
 
 Below is an example:
 
-```java
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
 DataStream<String> input = ...;
 
 input.addSink(new ElasticsearchSink<>(
@@ -332,9 +380,10 @@ input.addSink(new ElasticsearchSink<>(
             }
         }
 }));
-```
-
-```scala
+{% endhighlight %}
+</div>
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
 val input: DataStream[String] = ...
 
 input.addSink(new ElasticsearchSink(
@@ -359,7 +408,9 @@ input.addSink(new ElasticsearchSink(
             }
         }
 }))
-```
+{% endhighlight %}
+</div>
+</div>
 
 The above example will let the sink re-add requests that failed due to
 queue capacity saturation and drop requests with malformed documents, without
@@ -413,7 +464,7 @@ More information about Elasticsearch can be found [here](https://elastic.co).
 
 For the execution of your Flink program, it is recommended to build a
 so-called uber-jar (executable jar) containing all your dependencies
-(see [here]({{site.baseurl}}/dev/projectsetup/dependencies.html) for further information).
+(see [here]({% link dev/project-configuration.md %}) for further information).
 
 Alternatively, you can put the connector's jar file into Flink's `lib/` folder to make it available
 system-wide, i.e. for all job being run.

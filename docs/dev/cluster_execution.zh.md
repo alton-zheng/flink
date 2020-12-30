@@ -1,68 +1,50 @@
----
-title:  "集群执行"
-nav-parent_id: batch
-nav-pos: 12
----
-<!--
-Licensed to the Apache Software Foundation (ASF) under one
-or more contributor license agreements.  See the NOTICE file
-distributed with this work for additional information
-regarding copyright ownership.  The ASF licenses this file
-to you under the Apache License, Version 2.0 (the
-"License"); you may not use this file except in compliance
-with the License.  You may obtain a copy of the License at
+# 集群执行
 
-  http://www.apache.org/licenses/LICENSE-2.0
+- [命令行界面（Interface）](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/cluster_execution.html#命令行界面interface)
+- 远程环境（Remote Environment）
+  - [Maven Dependency](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/cluster_execution.html#maven-dependency)
+  - [示例](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/cluster_execution.html#示例)
 
-Unless required by applicable law or agreed to in writing,
-software distributed under the License is distributed on an
-"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-KIND, either express or implied.  See the License for the
-specific language governing permissions and limitations
-under the License.
--->
+Flink 程序可以分布式运行在多机器集群上。有两种方式可以将程序提交到集群上执行：
 
-* This will be replaced by the TOC
-{:toc}
 
-Flink programs can run distributed on clusters of many machines. There
-are two ways to send a program to a cluster for execution:
 
-## Command Line Interface
+## 命令行界面（Interface）
 
-The command line interface lets you submit packaged programs (JARs) to a cluster
-(or single machine setup).
+命令行界面使你可以将打包的程序（JARs）提交到集群（或单机设置）。
 
-Please refer to the [Command Line Interface]({{ site.baseurl }}/ops/cli.html) documentation for
-details.
+有关详细信息，请参阅[命令行界面](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/deployment/cli.html)文档。
 
-## Remote Environment
 
-The remote environment lets you execute Flink Java programs on a cluster
-directly. The remote environment points to the cluster on which you want to
-execute the program.
+
+## 远程环境（Remote Environment）
+
+远程环境使你可以直接在集群上执行 Flink Java 程序。远程环境指向你要执行程序的集群。
+
+
 
 ### Maven Dependency
 
-If you are developing your program as a Maven project, you have to add the
-`flink-clients` module using this dependency:
+如果将程序作为 Maven 项目开发，则必须添加 `flink-clients` 模块的依赖：
 
-{% highlight xml %}
+```
 <dependency>
   <groupId>org.apache.flink</groupId>
-  <artifactId>flink-clients{{ site.scala_version_suffix }}</artifactId>
-  <version>{{ site.version }}</version>
+  <artifactId>flink-clients_2.11</artifactId>
+  <version>1.12.0</version>
 </dependency>
-{% endhighlight %}
+```
 
-### Example
 
-The following illustrates the use of the `RemoteEnvironment`:
 
-{% highlight java %}
+### 示例
+
+下面演示了 `RemoteEnvironment` 的用法：
+
+```
 public static void main(String[] args) throws Exception {
     ExecutionEnvironment env = ExecutionEnvironment
-        .createRemoteEnvironment("flink-master", 8081, "/home/user/udfs.jar");
+        .createRemoteEnvironment("flink-jobmanager", 8081, "/home/user/udfs.jar");
 
     DataSet<String> data = env.readTextFile("hdfs://path/to/file");
 
@@ -76,10 +58,6 @@ public static void main(String[] args) throws Exception {
 
     env.execute();
 }
-{% endhighlight %}
+```
 
-Note that the program contains custom user code and hence requires a JAR file with
-the classes of the code attached. The constructor of the remote environment
-takes the path(s) to the JAR file(s).
-
-{% top %}
+请注意，该程序包含用户自定义代码，因此需要一个带有附加代码类的 JAR 文件。远程环境的构造函数使用 JAR 文件的路径进行构造。

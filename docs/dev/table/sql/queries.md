@@ -1,99 +1,145 @@
-# 查询语句
+---
+title: "Queries"
+nav-parent_id: sql
+nav-pos: 1
+---
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
 
-SELECT 查询需要使用 `TableEnvironment` 的 `sqlQuery()` 方法加以指定。这个方法会以 `Table` 的形式返回 SELECT 的查询结果。 `Table` 可以被用于 [随后的SQL 与 Table API 查询](../../table/common.html#mixing-table-api-and-sql) 、 [转换为 DataSet 或 DataStream ](../../table/common.html#integration-with-datastream-and-dataset-api)或 [输出到 TableSink ](../../table/common.html#emit-a-table)。SQL 与 Table API 的查询可以进行无缝融合、整体优化并翻译为单一的程序。
+  http://www.apache.org/licenses/LICENSE-2.0
 
-为了可以在 SQL 查询中访问到表，你需要先 [在 TableEnvironment 中注册表 ](../../table/common.html#register-tables-in-the-catalog)。表可以通过 [TableSource](../../table/common.html#register-a-tablesource)、 [Table](../../table/common.html#register-a-table)、[CREATE TABLE 语句](create.html)、 [DataStream 或 DataSet](../../table/common.html#register-a-datastream-or-dataset-as-table) 注册。 用户也可以通过 [向 TableEnvironment 中注册 catalog ](../../table/catalogs.html) 的方式指定数据源的位置。
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
 
-为方便起见 `Table.toString()` 将会在其 `TableEnvironment` 中自动使用一个唯一的名字注册表并返回表名。 因此， `Table` 对象可以如下文所示样例，直接内联到 SQL 查询中。
+* This will be replaced by the TOC
+{:toc}
 
-**注意：** 查询若包括了不支持的 SQL 特性，将会抛出 `TableException`。批处理和流处理所支持的 SQL 特性将会在下述章节中列出。
+<div class="codetabs" data-hide-tabs="1" markdown="1">
+<div data-lang="java/scala" markdown="1">
 
-## 指定查询
+SELECT statements and VALUES statements are specified with the `sqlQuery()` method of the `TableEnvironment`. The method returns the result of the SELECT statement (or the VALUES statements) as a `Table`. A `Table` can be used in [subsequent SQL and Table API queries]({% link dev/table/common.md %}#mixing-table-api-and-sql), be [converted into a DataSet or DataStream]({% link dev/table/common.md %}#integration-with-datastream-and-dataset-api), or [written to a TableSink]({% link dev/table/common.md %}#emit-a-table). SQL and Table API queries can be seamlessly mixed and are holistically optimized and translated into a single program.
 
-以下示例显示如何在已注册和内联表上指定 SQL 查询。
+In order to access a table in a SQL query, it must be [registered in the TableEnvironment]({% link dev/table/common.md %}#register-tables-in-the-catalog). A table can be registered from a [TableSource]({% link dev/table/common.md %}#register-a-tablesource), [Table]({% link dev/table/common.md %}#register-a-table), [CREATE TABLE statement](#create-table), [DataStream, or DataSet]({% link dev/table/common.md %}#register-a-datastream-or-dataset-as-table). Alternatively, users can also [register catalogs in a TableEnvironment]({% link dev/table/catalogs.md %}) to specify the location of the data sources.
 
-```java
+For convenience, `Table.toString()` automatically registers the table under a unique name in its `TableEnvironment` and returns the name. So, `Table` objects can be directly inlined into SQL queries as shown in the examples below.
+
+**Note:** Queries that include unsupported SQL features cause a `TableException`. The supported features of SQL on batch and streaming tables are listed in the following sections.
+
+</div>
+
+<div data-lang="python" markdown="1">
+
+SELECT statements and VALUES statements are specified with the `sql_query()` method of the `TableEnvironment`. The method returns the result of the SELECT statement (or the VALUES statements) as a `Table`. A `Table` can be used in [subsequent SQL and Table API queries]({% link dev/table/common.md %}#mixing-table-api-and-sql) or [written to a TableSink]({% link dev/table/common.md %}#emit-a-table). SQL and Table API queries can be seamlessly mixed and are holistically optimized and translated into a single program.
+
+In order to access a table in a SQL query, it must be [registered in the TableEnvironment]({% link dev/table/common.md %}#register-tables-in-the-catalog). A table can be registered from a [TableSource]({% link dev/table/common.md %}#register-a-tablesource), [Table]({% link dev/table/common.md %}#register-a-table), [CREATE TABLE statement](#create-table). Alternatively, users can also [register catalogs in a TableEnvironment]({% link dev/table/catalogs.md %}) to specify the location of the data sources.
+
+For convenience, `str(Table)` automatically registers the table under a unique name in its `TableEnvironment` and returns the name. So, `Table` objects can be directly inlined into SQL queries as shown in the examples below.
+
+**Note:** Queries that include unsupported SQL features cause a `TableException`. The supported features of SQL on batch and streaming tables are listed in the following sections.
+
+</div>
+</div>
+
+## Specifying a Query
+
+The following examples show how to specify a SQL queries on registered and inlined tables.
+
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
 StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env);
 
-// 从外部数据源读取 DataStream 
+// ingest a DataStream from an external source
 DataStream<Tuple3<Long, String, Integer>> ds = env.addSource(...);
 
-// 使用 SQL 查询内联的（未注册的）表
-Table table = tableEnv.fromDataStream(ds, "user, product, amount");
+// SQL query with an inlined (unregistered) table
+Table table = tableEnv.fromDataStream(ds, $("user"), $("product"), $("amount"));
 Table result = tableEnv.sqlQuery(
   "SELECT SUM(amount) FROM " + table + " WHERE product LIKE '%Rubber%'");
 
-// SQL 查询一个已经注册的表
-// 根据视图 "Orders" 创建一个 DataStream
-tableEnv.createTemporaryView("Orders", ds, "user, product, amount");
-// 在表上执行 SQL 查询并得到以新表返回的结果
+// SQL query with a registered table
+// register the DataStream as view "Orders"
+tableEnv.createTemporaryView("Orders", ds, $("user"), $("product"), $("amount"));
+// run a SQL query on the Table and retrieve the result as a new Table
 Table result2 = tableEnv.sqlQuery(
   "SELECT product, amount FROM Orders WHERE product LIKE '%Rubber%'");
 
-// SQL 更新一个已经注册的表
-// 创建并注册一个 TableSink
+// create and register a TableSink
 final Schema schema = new Schema()
     .field("product", DataTypes.STRING())
     .field("amount", DataTypes.INT());
 
-tableEnv.connect(new FileSystem("/path/to/file"))
+tableEnv.connect(new FileSystem().path("/path/to/file"))
     .withFormat(...)
     .withSchema(schema)
     .createTemporaryTable("RubberOrders");
 
-// 在表上执行更新语句并把结果发出到 TableSink
-tableEnv.sqlUpdate(
+// run an INSERT SQL on the Table and emit the result to the TableSink
+tableEnv.executeSql(
   "INSERT INTO RubberOrders SELECT product, amount FROM Orders WHERE product LIKE '%Rubber%'");
-```
+{% endhighlight %}
+</div>
 
-```scala
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
 val env = StreamExecutionEnvironment.getExecutionEnvironment
 val tableEnv = StreamTableEnvironment.create(env)
 
-//  从外部数据源读取 DataStream 
+// read a DataStream from an external source
 val ds: DataStream[(Long, String, Integer)] = env.addSource(...)
 
-// 使用 SQL 查询内联的（未注册的）表
-val table = ds.toTable(tableEnv, 'user, 'product, 'amount)
+// SQL query with an inlined (unregistered) table
+val table = ds.toTable(tableEnv, $"user", $"product", $"amount")
 val result = tableEnv.sqlQuery(
   s"SELECT SUM(amount) FROM $table WHERE product LIKE '%Rubber%'")
 
-// SQL 查询一个已经注册的表
-// 使用名称 "Orders" 注册一个 DataStream 
-tableEnv.createTemporaryView("Orders", ds, 'user, 'product, 'amount)
-// 在表上执行 SQL 查询并得到以新表返回的结果
+// SQL query with a registered table
+// register the DataStream under the name "Orders"
+tableEnv.createTemporaryView("Orders", ds, $"user", $"product", $"amount")
+// run a SQL query on the Table and retrieve the result as a new Table
 val result2 = tableEnv.sqlQuery(
   "SELECT product, amount FROM Orders WHERE product LIKE '%Rubber%'")
 
-// 使用 SQL 更新一个已经注册的表
-// 创建并注册一个 TableSink
+// create and register a TableSink
 val schema = new Schema()
     .field("product", DataTypes.STRING())
     .field("amount", DataTypes.INT())
 
-tableEnv.connect(new FileSystem("/path/to/file"))
+tableEnv.connect(new FileSystem().path("/path/to/file"))
     .withFormat(...)
     .withSchema(schema)
     .createTemporaryTable("RubberOrders")
 
-// 在表上执行 SQL 更新操作，并把结果发出到 TableSink
-tableEnv.sqlUpdate(
+// run an INSERT SQL on the Table and emit the result to the TableSink
+tableEnv.executeSql(
   "INSERT INTO RubberOrders SELECT product, amount FROM Orders WHERE product LIKE '%Rubber%'")
-```
+{% endhighlight %}
+</div>
 
-```python
+<div data-lang="python" markdown="1">
+{% highlight python %}
 env = StreamExecutionEnvironment.get_execution_environment()
 table_env = StreamTableEnvironment.create(env)
 
-# SQL 查询内联的（未注册的）表
-# 元素数据类型： BIGINT, STRING, BIGINT
+# SQL query with an inlined (unregistered) table
+# elements data type: BIGINT, STRING, BIGINT
 table = table_env.from_elements(..., ['user', 'product', 'amount'])
 result = table_env \
     .sql_query("SELECT SUM(amount) FROM %s WHERE product LIKE '%%Rubber%%'" % table)
 
-# SQL 更新已经注册的表
-# 创建并注册 TableSink
+# create and register a TableSink
 t_env.connect(FileSystem().path("/path/to/file")))
     .with_format(Csv()
                  .field_delimiter(',')
@@ -103,18 +149,126 @@ t_env.connect(FileSystem().path("/path/to/file")))
                  .field("amount", DataTypes.BIGINT()))
     .create_temporary_table("RubberOrders")
 
-# 在表上执行 SQL 更新操作，并把结果发出到 TableSink
+# run an INSERT SQL on the Table and emit the result to the TableSink
 table_env \
-    .sql_update("INSERT INTO RubberOrders SELECT product, amount FROM Orders WHERE product LIKE '%Rubber%'")
-```
+    .execute_sql("INSERT INTO RubberOrders SELECT product, amount FROM Orders WHERE product LIKE '%Rubber%'")
+{% endhighlight %}
+</div>
+</div>
 
-## 支持的语法
+{% top %}
 
-Flink 通过支持标准 ANSI SQL的 [Apache Calcite](https://calcite.apache.org/docs/reference.html) 解析 SQL。
+## Execute a Query
+<div class="codetabs" data-hide-tabs="1" markdown="1">
+<div data-lang="java/scala" markdown="1">
 
-以下 BNF-语法 描述了批处理和流处理查询中所支持的 SQL 特性的超集。其中 [操作符](#操作符) 章节展示了所支持的特性的样例，并指明了哪些特性仅适用于批处理或流处理。
+A SELECT statement or a VALUES statement can be executed to collect the content to local through the `TableEnvironment.executeSql()` method. The method returns the result of the SELECT statement (or the VALUES statement) as a `TableResult`. Similar to a SELECT statement, a `Table` object can be executed using the `Table.execute()` method to collect the content of the query to the local client.
+`TableResult.collect()` method returns a closeable row iterator. The select job will not be finished unless all result data has been collected. We should actively close the job to avoid resource leak through the `CloseableIterator#close()` method. 
+We can also print the select result to client console through the `TableResult.print()` method. The result data in `TableResult` can be accessed only once. Thus, `collect()` and `print()` must not be called after each other.
 
-```sqlite-psql
+`TableResult.collect()` and `TableResult.print()` have slightly different behaviors under different checkpointing settings (to enable checkpointing for a streaming job, see <a href="{% link deployment/config.md %}#checkpointing">checkpointing config</a>).
+* For batch jobs or streaming jobs without checkpointing, `TableResult.collect()` and `TableResult.print()` have neither exactly-once nor at-least-once guarantee. Query results are immediately accessible by the clients once they're produced, but exceptions will be thrown when the job fails and restarts.
+* For streaming jobs with exactly-once checkpointing, `TableResult.collect()` and `TableResult.print()` guarantee an end-to-end exactly-once record delivery. A result will be accessible by clients only after its corresponding checkpoint completes.
+* For streaming jobs with at-least-once checkpointing, `TableResult.collect()` and `TableResult.print()` guarantee an end-to-end at-least-once record delivery. Query results are immediately accessible by the clients once they're produced, but it is possible for the same result to be delivered multiple times.
+</div>
+
+<div data-lang="python" markdown="1">
+
+A SELECT statement or a VALUES statement can be executed to collect the content to local through the `TableEnvironment.execute_sql()` method. The method returns the result of the SELECT statement (or the VALUES statement) as a `TableResult`. Similar to a SELECT statement, a `Table` object can be executed using the `Table.execute()` method to collect the content of the query to the local client.
+`TableResult.collect()` method returns a closeable row iterator. The select job will not be finished unless all result data has been collected. We should actively close the job to avoid resource leak through the `CloseableIterator#close()` method. 
+We can also print the select result to client console through the `TableResult.print()` method. The result data in `TableResult` can be accessed only once. Thus, `collect()` and `print()` must not be called after each other.
+
+`TableResult.collect()` and `TableResult.print()` have slightly different behaviors under different checkpointing settings (to enable checkpointing for a streaming job, see <a href="{% link deployment/config.md %}#checkpointing">checkpointing config</a>).
+* For batch jobs or streaming jobs without checkpointing, `TableResult.collect()` and `TableResult.print()` have neither exactly-once nor at-least-once guarantee. Query results are immediately accessible by the clients once they're produced, but exceptions will be thrown when the job fails and restarts.
+* For streaming jobs with exactly-once checkpointing, `TableResult.collect()` and `TableResult.print()` guarantee an end-to-end exactly-once record delivery. A result will be accessible by clients only after its corresponding checkpoint completes.
+* For streaming jobs with at-least-once checkpointing, `TableResult.collect()` and `TableResult.print()` guarantee an end-to-end at-least-once record delivery. Query results are immediately accessible by the clients once they're produced, but it is possible for the same result to be delivered multiple times.
+
+</div>
+</div>
+
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
+StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env, settings);
+
+tableEnv.executeSql("CREATE TABLE Orders (`user` BIGINT, product STRING, amount INT) WITH (...)");
+
+// execute SELECT statement
+TableResult tableResult1 = tableEnv.executeSql("SELECT * FROM Orders");
+// use try-with-resources statement to make sure the iterator will be closed automatically
+try (CloseableIterator<Row> it = tableResult1.collect()) {
+    while(it.hasNext()) {
+        Row row = it.next();
+        // handle row
+    }
+}
+
+// execute Table
+TableResult tableResult2 = tableEnv.sqlQuery("SELECT * FROM Orders").execute();
+tableResult2.print();
+
+{% endhighlight %}
+</div>
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
+val env = StreamExecutionEnvironment.getExecutionEnvironment()
+val tableEnv = StreamTableEnvironment.create(env, settings)
+// enable checkpointing
+tableEnv.getConfig.getConfiguration.set(
+  ExecutionCheckpointingOptions.CHECKPOINTING_MODE, CheckpointingMode.EXACTLY_ONCE)
+tableEnv.getConfig.getConfiguration.set(
+  ExecutionCheckpointingOptions.CHECKPOINTING_INTERVAL, Duration.ofSeconds(10))
+
+tableEnv.executeSql("CREATE TABLE Orders (`user` BIGINT, product STRING, amount INT) WITH (...)")
+
+// execute SELECT statement
+val tableResult1 = tableEnv.executeSql("SELECT * FROM Orders")
+val it = tableResult1.collect()
+try while (it.hasNext) {
+  val row = it.next
+  // handle row
+}
+finally it.close() // close the iterator to avoid resource leak
+
+// execute Table
+val tableResult2 = tableEnv.sqlQuery("SELECT * FROM Orders").execute()
+tableResult2.print()
+
+{% endhighlight %}
+</div>
+<div data-lang="python" markdown="1">
+{% highlight python %}
+env = StreamExecutionEnvironment.get_execution_environment()
+table_env = StreamTableEnvironment.create(env, settings)
+# enable checkpointing
+table_env.get_config().get_configuration().set_string("execution.checkpointing.mode", "EXACTLY_ONCE")
+table_env.get_config().get_configuration().set_string("execution.checkpointing.interval", "10s")
+
+table_env.execute_sql("CREATE TABLE Orders (`user` BIGINT, product STRING, amount INT) WITH (...)")
+
+# execute SELECT statement
+table_result1 = table_env.execute_sql("SELECT * FROM Orders")
+table_result1.print()
+
+# execute Table
+table_result2 = table_env.sql_query("SELECT * FROM Orders").execute()
+table_result2.print()
+
+{% endhighlight %}
+</div>
+</div>
+
+{% top %}
+
+
+## Syntax
+
+Flink parses SQL using [Apache Calcite](https://calcite.apache.org/docs/reference.html), which supports standard ANSI SQL.
+
+The following BNF-grammar describes the superset of supported SQL features in batch and streaming queries. The [Operations](#operations) section shows examples for the supported features and indicates which features are only supported for batch or streaming queries.
+
+{% highlight sql %}
 query:
   values
   | {
@@ -163,9 +317,24 @@ tableReference:
   [ [ AS ] alias [ '(' columnAlias [, columnAlias ]* ')' ] ]
 
 tablePrimary:
-  [ TABLE ] [ [ catalogName . ] schemaName . ] tableName
+  [ TABLE ] tablePath [ dynamicTableOptions ] [systemTimePeriod] [[AS] correlationName]
   | LATERAL TABLE '(' functionName '(' expression [, expression ]* ')' ')'
   | UNNEST '(' expression ')'
+
+tablePath:
+  [ [ catalogName . ] schemaName . ] tableName
+
+systemTimePeriod:
+  FOR SYSTEM_TIME AS OF dateTimeExpression
+
+dynamicTableOptions:
+  /*+ OPTIONS(key=val [, key=val]*) */
+
+key:
+  stringLiteral
+
+val:
+  stringLiteral
 
 values:
   VALUES expression [, expression ]*
@@ -232,464 +401,551 @@ patternQuantifier:
   |   '??'
   |   '{' { [ minRepeat ], [ maxRepeat ] } '}' ['?']
   |   '{' repeat '}'
-```
 
-Flink SQL 对于标识符（表、属性、函数名）有类似于 Java 的词法约定:
+{% endhighlight %}
 
-- 不管是否引用标识符，都保留标识符的大小写。
-- 且标识符需区分大小写。
-- 与 Java 不一样的地方在于，通过反引号，可以允许标识符带有非字母的字符（如：<code>"SELECT a AS `my field` FROM t"</code>）。
+Flink SQL uses a lexical policy for identifier (table, attribute, function names) similar to Java:
 
-字符串文本常量需要被单引号包起来（如 `SELECT 'Hello World'` ）。两个单引号表示转移（如 `SELECT 'It''s me.'`）。字符串文本常量支持 Unicode 字符，如需明确使用 Unicode 编码，请使用以下语法：
+- The case of identifiers is preserved whether or not they are quoted.
+- After which, identifiers are matched case-sensitively.
+- Unlike Java, back-ticks allow identifiers to contain non-alphanumeric characters (e.g. <code>"SELECT a AS `my field` FROM t"</code>).
 
-- 使用反斜杠（`\`）作为转义字符（默认）：`SELECT U&'\263A'`
-- 使用自定义的转义字符： `SELECT U&'#263A' UESCAPE '#'`
+String literals must be enclosed in single quotes (e.g., `SELECT 'Hello World'`). Duplicate a single quote for escaping (e.g., `SELECT 'It''s me.'`). Unicode characters are supported in string literals. If explicit unicode code points are required, use the following syntax:
 
-## 操作符
+- Use the backslash (`\`) as escaping character (default): `SELECT U&'\263A'`
+- Use a custom escaping character: `SELECT U&'#263A' UESCAPE '#'`
 
-### Show 与 Use
+{% top %}
 
+## Operations
+
+### Scan, Projection, and Filter
+
+<div markdown="1">
 <table class="table table-bordered">
-<thead>
-<tr>
-<th class="text-left">操作符</th>
-<th class="text-center">描述</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Show</strong><br /><span class="label label-primary">批处理</span>&nbsp;<span class="label label-primary">流处理</span></td>
-<td>
-<p>显示所有 catalog</p>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SHOW</span> <span class="n">CATALOGS</span><span class="p">;</span></code></pre>
-</figure>
-<p>显示当前 catalog 中所有的数据库</p>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SHOW</span> <span class="n">DATABASES</span><span class="p">;</span></code></pre>
-</figure>
-<p>显示当前数据库、Catalog中的所有表</p>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SHOW</span> <span class="n">TABLES</span><span class="p">;</span></code></pre>
-</figure>
-</td>
-</tr>
-<tr>
-<td><strong>Use</strong><br /><span class="label label-primary">批处理</span>&nbsp;<span class="label label-primary">流处理</span></td>
-<td>
-<p>为本次会话设置 catalog</p>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="n">USE</span> <span class="k">CATALOG</span> <span class="n">mycatalog</span><span class="p">;</span></code></pre>
-</figure>
-<p>为会话设置一个属于当前 catalog 的数据库</p>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="n">USE</span> <span class="n">mydatabase</span><span class="p">;</span></code></pre>
-</figure>
-</td>
-</tr>
-</tbody>
+  <thead>
+    <tr>
+      <th class="text-left" style="width: 20%">Operation</th>
+      <th class="text-center">Description</th>
+    </tr>
+  </thead>
+  <tbody>
+  	<tr>
+  		<td>
+        <strong>Scan / Select / As</strong><br>
+        <span class="label label-primary">Batch</span> <span class="label label-primary">Streaming</span>
+      </td>
+  		<td>
+{% highlight sql %}
+SELECT * FROM Orders
+
+SELECT a, c AS d FROM Orders
+{% endhighlight %}
+      </td>
+  	</tr>
+    <tr>
+      <td>
+        <strong>Where / Filter</strong><br>
+        <span class="label label-primary">Batch</span> <span class="label label-primary">Streaming</span>
+      </td>
+      <td>
+{% highlight sql %}
+SELECT * FROM Orders WHERE b = 'red'
+
+SELECT * FROM Orders WHERE a % 2 = 0
+{% endhighlight %}
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <strong>User-defined Scalar Functions (Scalar UDF)</strong><br>
+        <span class="label label-primary">Batch</span> <span class="label label-primary">Streaming</span>
+      </td>
+      <td>
+      <p>UDFs must be registered in the TableEnvironment. See the <a href="{% link dev/table/functions/udfs.md %}">UDF documentation</a> for details on how to specify and register scalar UDFs.</p>
+{% highlight sql %}
+SELECT PRETTY_PRINT(user) FROM Orders
+{% endhighlight %}
+      </td>
+    </tr>
+  </tbody>
 </table>
+</div>
 
-### Scan、Projection 与 Filter
+{% top %}
 
+### Aggregations
+
+<div markdown="1">
 <table class="table table-bordered">
-<thead>
-<tr>
-<th class="text-left">操作符</th>
-<th class="text-center">描述</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Scan / Select / As</strong><br /><span class="label label-primary">批处理</span>&nbsp;<span class="label label-primary">流处理</span></td>
-<td>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="o">*</span> <span class="k">FROM</span> <span class="n">Orders</span>
-<span class="k">SELECT</span> <span class="n">a</span><span class="p">,</span> <span class="k">c</span> <span class="k">AS</span> <span class="n">d</span> <span class="k">FROM</span> <span class="n">Orders</span></code></pre>
-</figure>
-</td>
-</tr>
-<tr>
-<td><strong>Where / Filter</strong><br /><span class="label label-primary">批处理</span>&nbsp;<span class="label label-primary">流处理</span></td>
-<td>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="o">*</span> <span class="k">FROM</span> <span class="n">Orders</span> <span class="k">WHERE</span> <span class="n">b</span> <span class="o">=</span> <span class="s1">'red'</span>
-<span class="k">SELECT</span> <span class="o">*</span> <span class="k">FROM</span> <span class="n">Orders</span> <span class="k">WHERE</span> <span class="n">a</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">=</span> <span class="mi">0</span></code></pre>
-</figure>
-</td>
-</tr>
-<tr>
-<td><strong>用户定义标量函数（Scalar UDF）</strong><br /><span class="label label-primary">批处理</span>&nbsp;<span class="label label-primary">流处理</span></td>
-<td>
-<p>自定义函数必须事先注册到 TableEnvironment 中。 可阅读&nbsp;<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/functions/udfs.html">自定义函数文档</a>&nbsp;以获得如何指定和注册自定义函数的详细信息。</p>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="n">PRETTY_PRINT</span><span class="p">(</span><span class="k">user</span><span class="p">)</span> <span class="k">FROM</span> <span class="n">Orders</span></code></pre>
-</figure>
-</td>
-</tr>
-</tbody>
+  <thead>
+    <tr>
+      <th class="text-left" style="width: 20%">Operation</th>
+      <th class="text-center">Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>
+        <strong>GroupBy Aggregation</strong><br>
+        <span class="label label-primary">Batch</span> <span class="label label-primary">Streaming</span><br>
+        <span class="label label-info">Result Updating</span>
+      </td>
+      <td>
+        <p><b>Note:</b> GroupBy on a streaming table produces an updating result. See the <a href="{% link dev/table/streaming/dynamic_tables.md %}">Dynamic Tables Streaming Concepts</a> page for details.
+        </p>
+{% highlight sql %}
+SELECT a, SUM(b) as d
+FROM Orders
+GROUP BY a
+{% endhighlight %}
+      </td>
+    </tr>
+    <tr>
+    	<td>
+        <strong>GroupBy Window Aggregation</strong><br>
+        <span class="label label-primary">Batch</span> <span class="label label-primary">Streaming</span>
+      </td>
+    	<td>
+        <p>Use a group window to compute a single result row per group. See <a href="#group-windows">Group Windows</a> section for more details.</p>
+{% highlight sql %}
+SELECT user, SUM(amount)
+FROM Orders
+GROUP BY TUMBLE(rowtime, INTERVAL '1' DAY), user
+{% endhighlight %}
+      </td>
+    </tr>
+    <tr>
+    	<td>
+        <strong>Over Window aggregation</strong><br>
+        <span class="label label-primary">Streaming</span>
+      </td>
+    	<td>
+        <p><b>Note:</b> All aggregates must be defined over the same window, i.e., same partitioning, sorting, and range. Currently, only windows with PRECEDING (UNBOUNDED and bounded) to CURRENT ROW range are supported. Ranges with FOLLOWING are not supported yet. ORDER BY must be specified on a single <a href="{% link dev/table/streaming/time_attributes.md %}">time attribute</a></p>
+{% highlight sql %}
+SELECT COUNT(amount) OVER (
+  PARTITION BY user
+  ORDER BY proctime
+  ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)
+FROM Orders
+
+SELECT COUNT(amount) OVER w, SUM(amount) OVER w
+FROM Orders
+WINDOW w AS (
+  PARTITION BY user
+  ORDER BY proctime
+  ROWS BETWEEN 2 PRECEDING AND CURRENT ROW)
+{% endhighlight %}
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <strong>Distinct</strong><br>
+        <span class="label label-primary">Batch</span> <span class="label label-primary">Streaming</span> <br>
+        <span class="label label-info">Result Updating</span>
+      </td>
+      <td>
+{% highlight sql %}
+SELECT DISTINCT users FROM Orders
+{% endhighlight %}
+       <p><b>Note:</b> For streaming queries the required state to compute the query result might grow infinitely depending on the number of distinct fields. Please provide a query configuration with valid retention interval to prevent excessive state size. See <a href="{% link dev/table/streaming/query_configuration.md %}">Query Configuration</a> for details.</p>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <strong>Grouping sets, Rollup, Cube</strong><br>
+        <span class="label label-primary">Batch</span> <span class="label label-primary">Streaming</span>
+        <span class="label label-info">Result Updating</span>
+      </td>
+      <td>
+{% highlight sql %}
+SELECT SUM(amount)
+FROM Orders
+GROUP BY GROUPING SETS ((user), (product))
+{% endhighlight %}
+        <p><b>Note:</b> Streaming mode Grouping sets, Rollup and Cube are only supported in Blink planner.</p>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <strong>Having</strong><br>
+        <span class="label label-primary">Batch</span> <span class="label label-primary">Streaming</span>
+      </td>
+      <td>
+{% highlight sql %}
+SELECT SUM(amount)
+FROM Orders
+GROUP BY users
+HAVING SUM(amount) > 50
+{% endhighlight %}
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <strong>User-defined Aggregate Functions (UDAGG)</strong><br>
+        <span class="label label-primary">Batch</span> <span class="label label-primary">Streaming</span>
+      </td>
+      <td>
+        <p>UDAGGs must be registered in the TableEnvironment. See the <a href="{% link dev/table/functions/udfs.md %}">UDF documentation</a> for details on how to specify and register UDAGGs.</p>
+{% highlight sql %}
+SELECT MyAggregate(amount)
+FROM Orders
+GROUP BY users
+{% endhighlight %}
+      </td>
+    </tr>
+  </tbody>
 </table>
-<p>&nbsp;</p>
+</div>
 
-### 聚合
+{% top %}
 
-<table class="table table-bordered">
-<thead>
-<tr>
-<th class="text-left">操作符</th>
-<th class="text-center">描述</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>GroupBy 聚合</strong><br /><span class="label label-primary">批处理</span>&nbsp;<span class="label label-primary">流处理</span><br /><span class="label label-info">结果更新</span></td>
-<td>
-<p><strong>注意：</strong>&nbsp;GroupBy 在流处理表中会产生更新结果（updating result）。详情请阅读&nbsp;<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/streaming/dynamic_tables.html">动态表流概念</a>&nbsp;。</p>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="n">a</span><span class="p">,</span> <span class="k">SUM</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="k">as</span> <span class="n">d</span>
-<span class="k">FROM</span> <span class="n">Orders</span>
-<span class="k">GROUP</span> <span class="k">BY</span> <span class="n">a</span></code></pre>
-</figure>
-</td>
-</tr>
-<tr>
-<td><strong>GroupBy 窗口聚合</strong><br /><span class="label label-primary">批处理</span>&nbsp;<span class="label label-primary">流处理</span></td>
-<td>
-<p>使用分组窗口对每个组进行计算并得到一个结果行。详情请阅读&nbsp;<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/sql/queries.html#%E5%88%86%E7%BB%84%E7%AA%97%E5%8F%A3">分组窗口</a>&nbsp;章节</p>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="k">user</span><span class="p">,</span> <span class="k">SUM</span><span class="p">(</span><span class="n">amount</span><span class="p">)</span>
-<span class="k">FROM</span> <span class="n">Orders</span>
-<span class="k">GROUP</span> <span class="k">BY</span> <span class="n">TUMBLE</span><span class="p">(</span><span class="n">rowtime</span><span class="p">,</span> <span class="n">INTERVAL</span> <span class="s1">'1'</span> <span class="k">DAY</span><span class="p">),</span> <span class="k">user</span></code></pre>
-</figure>
-</td>
-</tr>
-<tr>
-<td><strong>Over Window aggregation</strong><br /><span class="label label-primary">流处理</span></td>
-<td>
-<p><strong>注意：</strong>&nbsp;所有的聚合必须定义到同一个窗口中，即相同的分区、排序和区间。当前仅支持 PRECEDING (无界或有界) 到 CURRENT ROW 范围内的窗口、FOLLOWING 所描述的区间并未支持，ORDER BY 必须指定于单个的<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/streaming/time_attributes.html">时间属性</a>。</p>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="k">COUNT</span><span class="p">(</span><span class="n">amount</span><span class="p">)</span> <span class="n">OVER</span> <span class="p">(</span>
-  <span class="n">PARTITION</span> <span class="k">BY</span> <span class="k">user</span>
-  <span class="k">ORDER</span> <span class="k">BY</span> <span class="n">proctime</span>
-  <span class="k">ROWS</span> <span class="k">BETWEEN</span> <span class="mi">2</span> <span class="n">PRECEDING</span> <span class="k">AND</span> <span class="k">CURRENT</span> <span class="k">ROW</span><span class="p">)</span>
-<span class="k">FROM</span> <span class="n">Orders</span>
-<span class="k">SELECT</span> <span class="k">COUNT</span><span class="p">(</span><span class="n">amount</span><span class="p">)</span> <span class="n">OVER</span> <span class="n">w</span><span class="p">,</span> <span class="k">SUM</span><span class="p">(</span><span class="n">amount</span><span class="p">)</span> <span class="n">OVER</span> <span class="n">w</span>
-<span class="k">FROM</span> <span class="n">Orders</span>
-<span class="n">WINDOW</span> <span class="n">w</span> <span class="k">AS</span> <span class="p">(</span>
-<span class="n">PARTITION</span> <span class="k">BY</span> <span class="k">user</span>
-<span class="k">ORDER</span> <span class="k">BY</span> <span class="n">proctime</span>
-<span class="k">ROWS</span> <span class="k">BETWEEN</span> <span class="mi">2</span> <span class="n">PRECEDING</span> <span class="k">AND</span> <span class="k">CURRENT</span> <span class="k">ROW</span><span class="p">)</span> </code></pre>
-</figure>
-</td>
-</tr>
-<tr>
-<td><strong>Distinct</strong><br /><span class="label label-primary">批处理</span>&nbsp;<span class="label label-primary">流处理</span><br /><span class="label label-info">结果更新</span></td>
-<td>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="k">DISTINCT</span> <span class="n">users</span> <span class="k">FROM</span> <span class="n">Orders</span></code></pre>
-</figure>
-<p><strong>注意：</strong>&nbsp;对于流处理查询，根据不同字段的数量，计算查询结果所需的状态可能会无限增长。请提供具有有效保留间隔的查询配置，以防止出现过多的状态。请阅读&nbsp;<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/streaming/query_configuration.html">查询配置</a>&nbsp;以获取详细的信息</p>
-</td>
-</tr>
-<tr>
-<td><strong>Grouping sets, Rollup, Cube</strong><br /><span class="label label-primary">批处理</span>&nbsp;<span class="label label-primary">流处理</span>&nbsp;<span class="label label-info">结果更新</span></td>
-<td>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="k">SUM</span><span class="p">(</span><span class="n">amount</span><span class="p">)</span>
-<span class="k">FROM</span> <span class="n">Orders</span>
-<span class="k">GROUP</span> <span class="k">BY</span> <span class="k">GROUPING</span> <span class="k">SETS</span> <span class="p">((</span><span class="k">user</span><span class="p">),</span> <span class="p">(</span><span class="n">product</span><span class="p">))</span></code></pre>
-</figure>
-<p><strong>Note:</strong>&nbsp;流式 Grouping sets、Rollup 以及 Cube 只在 Blink planner 中支持。</p>
-</td>
-</tr>
-<tr>
-<td><strong>Having</strong><br /><span class="label label-primary">批处理</span>&nbsp;<span class="label label-primary">流处理</span></td>
-<td>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="k">SUM</span><span class="p">(</span><span class="n">amount</span><span class="p">)</span>
-<span class="k">FROM</span> <span class="n">Orders</span>
-<span class="k">GROUP</span> <span class="k">BY</span> <span class="n">users</span>
-<span class="k">HAVING</span> <span class="k">SUM</span><span class="p">(</span><span class="n">amount</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">50</span></code></pre>
-</figure>
-</td>
-</tr>
-<tr>
-<td><strong>用户自定义聚合函数 (UDAGG)</strong><br /><span class="label label-primary">批处理</span>&nbsp;<span class="label label-primary">流处理</span></td>
-<td>
-<p>UDAGG 必须注册到 TableEnvironment. 参考<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/functions/udfs.html">自定义函数文档</a>&nbsp;以了解如何指定和注册 UDAGG 。</p>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="n">MyAggregate</span><span class="p">(</span><span class="n">amount</span><span class="p">)</span>
-<span class="k">FROM</span> <span class="n">Orders</span>
-<span class="k">GROUP</span> <span class="k">BY</span> <span class="n">users</span></code></pre>
-</figure>
-</td>
-</tr>
-</tbody>
-</table>
-<p>&nbsp;</p>
-
----
 ### Joins
 
+<div markdown="1">
 <table class="table table-bordered">
-<thead>
-<tr>
-<th class="text-left">操作符</th>
-<th class="text-center">描述</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Inner Equi-join</strong><br /><span class="label label-primary">批处理</span>&nbsp;<span class="label label-primary">流处理</span></td>
-<td>
-<p>目前仅支持 equi-join ，即 join 的联合条件至少拥有一个相等谓词。不支持任何 cross join 和 theta join。</p>
-<p><strong>注意：</strong>&nbsp;Join 的顺序没有进行优化，join 会按照 FROM 中所定义的顺序依次执行。请确保 join 所指定的表在顺序执行中不会产生不支持的 cross join （笛卡儿积）以至查询失败。</p>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="o">*</span>
-<span class="k">FROM</span> <span class="n">Orders</span> <span class="k">INNER</span> <span class="k">JOIN</span> <span class="n">Product</span> <span class="k">ON</span> <span class="n">Orders</span><span class="p">.</span><span class="n">productId</span> <span class="o">=</span> <span class="n">Product</span><span class="p">.</span><span class="n">id</span></code></pre>
-</figure>
-<p><strong>注意：</strong>&nbsp;流查询中可能会因为不同行的输入数量导致计算结果的状态无限增长。请提供具有有效保留间隔的查询配置，以防止出现过多的状态。详情请参考&nbsp;<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/streaming/query_configuration.html">查询配置</a>&nbsp;页面.</p>
-</td>
-</tr>
-<tr>
-<td><strong>Outer Equi-join</strong><br /><span class="label label-primary">批处理</span>&nbsp;<span class="label label-primary">流处理</span>&nbsp;<span class="label label-info">结果更新</span></td>
-<td>
-<p>目前仅支持 equi-join ，即 join 的联合条件至少拥有一个相等谓词。不支持任何 cross join 和 theta join。</p>
-<p><strong>注意：</strong>&nbsp;Join 的顺序没有进行优化，join 会按照 FROM 中所定义的顺序依次执行。请确保 join 所指定的表在顺序执行中不会产生不支持的 cross join （笛卡儿积）以至查询失败。</p>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="o">*</span>
-<span class="k">FROM</span> <span class="n">Orders</span> <span class="k">LEFT</span> <span class="k">JOIN</span> <span class="n">Product</span> <span class="k">ON</span> <span class="n">Orders</span><span class="p">.</span><span class="n">productId</span> <span class="o">=</span> <span class="n">Product</span><span class="p">.</span><span class="n">id</span>
-<span class="k">SELECT</span> <span class="o">\*</span>
-<span class="k">FROM</span> <span class="n">Orders</span> <span class="k">RIGHT</span> <span class="k">JOIN</span> <span class="n">Product</span> <span class="k">ON</span> <span class="n">Orders</span><span class="p">.</span><span class="n">productId</span> <span class="o">=</span> <span class="n">Product</span><span class="p">.</span><span class="n">id</span>
-<span class="k">SELECT</span> <span class="o">\*</span>
-<span class="k">FROM</span> <span class="n">Orders</span> <span class="k">FULL</span> <span class="k">OUTER</span> <span class="k">JOIN</span> <span class="n">Product</span> <span class="k">ON</span> <span class="n">Orders</span><span class="p">.</span><span class="n">productId</span> <span class="o">=</span> <span class="n">Product</span><span class="p">.</span><span class="n">id</span></code></pre>
-</figure>
-<p><strong>注意：</strong>&nbsp;流查询中可能会因为不同行的输入数量导致计算结果的状态无限增长。请提供具有有效保留间隔的查询配置，以防止出现过多的状态。详情请参考&nbsp;<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/streaming/query_configuration.html">查询配置</a>&nbsp;页面.</p>
-</td>
-</tr>
-<tr>
-<td><strong>Time-windowed Join</strong><br /><span class="label label-primary">批处理</span>&nbsp;<span class="label label-primary">流处理</span></td>
-<td>
-<p><strong>注意：</strong>&nbsp;时间窗口 join 是常规 join 的子集，可以使用流的方式进行处理。</p>
-<p>时间窗口join需要至少一个 equi-join 谓词和一个限制了双方时间的 join 条件。例如使用两个适当的范围谓词（<code>&lt;, &lt;=, &gt;=, &gt;</code>），一个&nbsp;<code>BETWEEN</code>&nbsp;谓词或一个比较两个输入表中相同类型的&nbsp;<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/streaming/time_attributes.html">时间属性</a>&nbsp;（即处理时间和事件时间）的相等谓词</p>
-<p>比如，以下谓词是合法的窗口 join 条件：</p>
-<ul>
-<li><code>ltime = rtime</code></li>
-<li><code>ltime &gt;= rtime AND ltime &lt; rtime + INTERVAL '10' MINUTE</code></li>
-<li><code>ltime BETWEEN rtime - INTERVAL '10' SECOND AND rtime + INTERVAL '5' SECOND</code></li>
-</ul>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="o">*</span>
-<span class="k">FROM</span> <span class="n">Orders</span> <span class="n">o</span><span class="p">,</span> <span class="n">Shipments</span> <span class="n">s</span>
-<span class="k">WHERE</span> <span class="n">o</span><span class="p">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">s</span><span class="p">.</span><span class="n">orderId</span> <span class="k">AND</span>
-      <span class="n">o</span><span class="p">.</span><span class="n">ordertime</span> <span class="k">BETWEEN</span> <span class="n">s</span><span class="p">.</span><span class="n">shiptime</span> <span class="o">-</span> <span class="n">INTERVAL</span> <span class="s1">'4'</span> <span class="n">HOUR</span> <span class="k">AND</span> <span class="n">s</span><span class="p">.</span><span class="n">shiptime</span></code></pre>
-</figure>
-以上示例中，所有在收到后四小时内发货的 order 会与他们相关的 shipment 进行 join。</td>
-</tr>
-<tr>
-<td><strong>Expanding arrays into a relation</strong><br /><span class="label label-primary">批处理</span>&nbsp;<span class="label label-primary">流处理</span></td>
-<td>
-<p>目前尚未支持非嵌套的 WITH ORDINALITY 。</p>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="n">users</span><span class="p">,</span> <span class="n">tag</span>
-<span class="k">FROM</span> <span class="n">Orders</span> <span class="k">CROSS</span> <span class="k">JOIN</span> <span class="k">UNNEST</span><span class="p">(</span><span class="n">tags</span><span class="p">)</span> <span class="k">AS</span> <span class="n">t</span> <span class="p">(</span><span class="n">tag</span><span class="p">)</span></code></pre>
-</figure>
-</td>
-</tr>
-<tr>
-<td><strong>Join 表函数 (UDTF)</strong><br /><span class="label label-primary">批处理</span>&nbsp;<span class="label label-primary">流处理</span></td>
-<td>
-<p>将表与表函数的结果进行 join 操作。左表（outer）中的每一行将会与调用表函数所产生的所有结果中相关联行进行 join 。</p>
-<p>用户自定义表函数（ User-defined table functions，UDTFs ） 在执行前必须先注册。请参考&nbsp;<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/functions/udfs.html">UDF 文档</a>&nbsp;以获取更多关于指定和注册UDF的信息</p>
-<p><strong>Inner Join</strong></p>
-<p>若表函数返回了空结果，左表（outer）的行将会被删除。</p>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="n">users</span><span class="p">,</span> <span class="n">tag</span>
-<span class="k">FROM</span> <span class="n">Orders</span><span class="p">,</span> <span class="k">LATERAL</span> <span class="k">TABLE</span><span class="p">(</span><span class="n">unnest_udtf</span><span class="p">(</span><span class="n">tags</span><span class="p">))</span> <span class="n">t</span> <span class="k">AS</span> <span class="n">tag</span></code></pre>
-</figure>
-<p><strong>Left Outer Join</strong></p>
-<p>若表函数返回了空结果，将会保留相对应的外部行并用空值填充结果。</p>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="n">users</span><span class="p">,</span> <span class="n">tag</span>
-<span class="k">FROM</span> <span class="n">Orders</span> <span class="k">LEFT</span> <span class="k">JOIN</span> <span class="k">LATERAL</span> <span class="k">TABLE</span><span class="p">(</span><span class="n">unnest_udtf</span><span class="p">(</span><span class="n">tags</span><span class="p">))</span> <span class="n">t</span> <span class="k">AS</span> <span class="n">tag</span> <span class="k">ON</span> <span class="k">TRUE</span></code></pre>
-</figure>
-<p><strong>注意：</strong>&nbsp;当前仅支持文本常量&nbsp;<code>TRUE</code>&nbsp;作为针对横向表的左外部联接的谓词。</p>
-</td>
-</tr>
-<tr>
-<td><strong>Join Temporal Table Function</strong><br /><span class="label label-primary">流处理</span></td>
-<td>
-<p><a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/streaming/temporal_tables.html">Temporal Tables</a>&nbsp;是跟随时间变化而变化的表。</p>
-<p><a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/streaming/temporal_tables.html#temporal-table-functions">Temporal Table Function</a>&nbsp;提供访问 Temporal Tables 在某一时间点的状态的能力。 Join Temporal Table Function 的语法与&nbsp;<em>Join Table Function</em>&nbsp;一致。</p>
-<p><strong>注意：</strong>&nbsp;目前仅支持在 Temporal Tables 上的 inner join 。</p>
-<p>假如&nbsp;<em>Rates</em>&nbsp;是一个&nbsp;<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/streaming/temporal_tables.html#temporal-table-functions">Temporal Table Function</a>, join 可以使用 SQL 进行如下的表达:</p>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span>
-  <span class="n">o_amount</span><span class="p">,</span> <span class="n">r_rate</span>
-<span class="k">FROM</span>
-  <span class="n">Orders</span><span class="p">,</span>
-  <span class="k">LATERAL</span> <span class="k">TABLE</span> <span class="p">(</span><span class="n">Rates</span><span class="p">(</span><span class="n">o_proctime</span><span class="p">))</span>
-<span class="k">WHERE</span>
-  <span class="n">r_currency</span> <span class="o">=</span> <span class="n">o_currency</span></code></pre>
-</figure>
-<p>请查看&nbsp;<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/streaming/temporal_tables.html">Temporal Tables 概念描述</a>&nbsp;以了解详细信息。</p>
-</td>
-</tr>
-<tr>
-<td><strong>Join Temporal Tables</strong><br /><span class="label label-primary">批处理</span>&nbsp;<span class="label label-primary">流处理</span></td>
-<td>
-<p><a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/streaming/temporal_tables.html">Temporal Tables</a>&nbsp;是随时间变化而变化的表。&nbsp;<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/streaming/temporal_tables.html#temporal-table">Temporal Table</a>&nbsp;提供访问指定时间点的 temporal table 版本的功能。</p>
-<p>仅支持带有处理时间的 temporal tables 的 inner 和 left join。</p>
-<p>下述示例中，假设&nbsp;<strong>LatestRates</strong>&nbsp;是一个根据最新的 rates 物化的&nbsp;<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/streaming/temporal_tables.html#temporal-table">Temporal Table</a>&nbsp;。</p>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span>
-  <span class="n">o</span><span class="p">.</span><span class="n">amout</span><span class="p">,</span> <span class="n">o</span><span class="p">.</span><span class="n">currency</span><span class="p">,</span> <span class="n">r</span><span class="p">.</span><span class="n">rate</span><span class="p">,</span> <span class="n">o</span><span class="p">.</span><span class="n">amount</span> <span class="o">*</span> <span class="n">r</span><span class="p">.</span><span class="n">rate</span>
-<span class="k">FROM</span>
-  <span class="n">Orders</span> <span class="k">AS</span> <span class="n">o</span>
-  <span class="k">JOIN</span> <span class="n">LatestRates</span> <span class="k">FOR</span> <span class="n">SYSTEM_TIME</span> <span class="k">AS</span> <span class="k">OF</span> <span class="n">o</span><span class="p">.</span><span class="n">proctime</span> <span class="k">AS</span> <span class="n">r</span>
-  <span class="k">ON</span> <span class="n">r</span><span class="p">.</span><span class="n">currency</span> <span class="o">=</span> <span class="n">o</span><span class="p">.</span><span class="n">currency</span></code></pre>
-</figure>
-<p>请阅读&nbsp;<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/streaming/temporal_tables.html">Temporal Tables</a>&nbsp;概念描述以了解详细信息。</p>
-<p>仅 Blink planner 支持。</p>
-</td>
-</tr>
-</tbody>
+  <thead>
+    <tr>
+      <th class="text-left" style="width: 20%">Operation</th>
+      <th class="text-center">Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Inner Equi-join</strong><br>
+        <span class="label label-primary">Batch</span>
+        <span class="label label-primary">Streaming</span>
+      </td>
+      <td>
+        <p>Currently, only equi-joins are supported, i.e., joins that have at least one conjunctive condition with an equality predicate. Arbitrary cross or theta joins are not supported.</p>
+        <p><b>Note:</b> The order of joins is not optimized. Tables are joined in the order in which they are specified in the FROM clause. Make sure to specify tables in an order that does not yield a cross join (Cartesian product) which are not supported and would cause a query to fail.</p>
+{% highlight sql %}
+SELECT *
+FROM Orders INNER JOIN Product ON Orders.productId = Product.id
+{% endhighlight %}
+        <p><b>Note:</b> For streaming queries the required state to compute the query result might grow infinitely depending on the number of distinct input rows. Please provide a query configuration with valid retention interval to prevent excessive state size. See <a href="{% link dev/table/streaming/query_configuration.md %}">Query Configuration</a> for details.</p>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>Outer Equi-join</strong><br>
+        <span class="label label-primary">Batch</span>
+        <span class="label label-primary">Streaming</span>
+        <span class="label label-info">Result Updating</span>
+      </td>
+      <td>
+        <p>Currently, only equi-joins are supported, i.e., joins that have at least one conjunctive condition with an equality predicate. Arbitrary cross or theta joins are not supported.</p>
+        <p><b>Note:</b> The order of joins is not optimized. Tables are joined in the order in which they are specified in the FROM clause. Make sure to specify tables in an order that does not yield a cross join (Cartesian product) which are not supported and would cause a query to fail.</p>
+{% highlight sql %}
+SELECT *
+FROM Orders LEFT JOIN Product ON Orders.productId = Product.id
+
+SELECT *
+FROM Orders RIGHT JOIN Product ON Orders.productId = Product.id
+
+SELECT *
+FROM Orders FULL OUTER JOIN Product ON Orders.productId = Product.id
+{% endhighlight %}
+        <p><b>Note:</b> For streaming queries the required state to compute the query result might grow infinitely depending on the number of distinct input rows. Please provide a query configuration with valid retention interval to prevent excessive state size. See <a href="{% link dev/table/streaming/query_configuration.md %}">Query Configuration</a> for details.</p>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>Interval Join</strong><br>
+        <span class="label label-primary">Batch</span>
+        <span class="label label-primary">Streaming</span>
+      </td>
+      <td>
+        <p><b>Note:</b> Interval joins are a subset of regular joins that can be processed in a streaming fashion.</p>
+
+        <p>A interval join requires at least one equi-join predicate and a join condition that bounds the time on both sides. Such a condition can be defined by two appropriate range predicates (<code>&lt;, &lt;=, &gt;=, &gt;</code>), a <code>BETWEEN</code> predicate, or a single equality predicate that compares <a href="{% link dev/table/streaming/time_attributes.md %}">time attributes</a> of the same type (i.e., processing time or event time) of both input tables.</p>
+        <p>For example, the following predicates are valid interval join conditions:</p>
+
+        <ul>
+          <li><code>ltime = rtime</code></li>
+          <li><code>ltime &gt;= rtime AND ltime &lt; rtime + INTERVAL '10' MINUTE</code></li>
+          <li><code>ltime BETWEEN rtime - INTERVAL '10' SECOND AND rtime + INTERVAL '5' SECOND</code></li>
+        </ul>
+
+{% highlight sql %}
+SELECT *
+FROM Orders o, Shipments s
+WHERE o.id = s.orderId AND
+      o.ordertime BETWEEN s.shiptime - INTERVAL '4' HOUR AND s.shiptime
+{% endhighlight %}
+
+The example above will join all orders with their corresponding shipments if the order was shipped four hours after the order was received.
+      </td>
+    </tr>
+    <tr>
+    	<td>
+        <strong>Expanding arrays into a relation</strong><br>
+        <span class="label label-primary">Batch</span> <span class="label label-primary">Streaming</span>
+      </td>
+    	<td>
+        <p>Unnesting WITH ORDINALITY is not supported yet.</p>
+{% highlight sql %}
+SELECT users, tag
+FROM Orders CROSS JOIN UNNEST(tags) AS t (tag)
+{% endhighlight %}
+      </td>
+    </tr>
+    <tr>
+    	<td>
+        <strong>Join with Table Function (UDTF)</strong><br>
+        <span class="label label-primary">Batch</span> <span class="label label-primary">Streaming</span>
+      </td>
+    	<td>
+        <p>Joins a table with the results of a table function. Each row of the left (outer) table is joined with all rows produced by the corresponding call of the table function.</p>
+        <p>User-defined table functions (UDTFs) must be registered before. See the <a href="{% link dev/table/functions/udfs.md %}">UDF documentation</a> for details on how to specify and register UDTFs. </p>
+
+        <p><b>Inner Join</b></p>
+        <p>A row of the left (outer) table is dropped, if its table function call returns an empty result.</p>
+{% highlight sql %}
+SELECT users, tag
+FROM Orders, LATERAL TABLE(unnest_udtf(tags)) AS t(tag)
+-- from 1.11, we can also do it like below:
+SELECT users, tag
+FROM Orders, LATERAL TABLE(unnest_udtf(tags))
+{% endhighlight %}
+
+        <p><b>Left Outer Join</b></p>
+        <p>If a table function call returns an empty result, the corresponding outer row is preserved and the result padded with null values.</p>
+{% highlight sql %}
+SELECT users, tag
+FROM Orders LEFT JOIN LATERAL TABLE(unnest_udtf(tags)) AS t(tag) ON TRUE
+-- from 1.11, we can also do it like below:
+SELECT users, tag
+FROM Orders LEFT JOIN LATERAL TABLE(unnest_udtf(tags)) ON TRUE
+{% endhighlight %}
+
+        <p><b>Note:</b> Currently, only literal <code>TRUE</code> is supported as predicate for a left outer join against a lateral table.</p>
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <strong>Join with Temporal Table</strong><br>
+        <span class="label label-primary">Batch</span> <span class="label label-primary">Streaming</span>
+      </td>
+      <td>
+        <p><a href="{% link dev/table/streaming/temporal_tables.md %}">Temporal Tables</a> are tables that track changes over time.
+        A <a href="{% link dev/table/streaming/temporal_tables.md %}#temporal-table">Temporal Table</a> provides access to the versions of a temporal table at a specific point in time.</p>
+
+        <p>Processing-time temporal join and event-time temporal join are supported, inner join and left join are supported.</p>
+        <p>The event-time temporal join is not suppored in <span class="label label-primary">Batch</span></p>
+        <p>The following example assumes that <strong>LatestRates</strong> is a <a href="{% link dev/table/streaming/temporal_tables.md %}#temporal-table">Temporal Table</a> which is materialized with the latest rate.</p>
+{% highlight sql %}
+SELECT
+  o.amount, o.currency, r.rate, o.amount * r.rate
+FROM
+  Orders AS o
+  JOIN LatestRates FOR SYSTEM_TIME AS OF o.proctime AS r
+  ON r.currency = o.currency
+{% endhighlight %}
+        <p>The RHS table can be named with an alias using optional clause <code>[[<strong>AS</strong>] correlationName]</code>, note that the <code><strong>AS</strong></code> keyword is also optional.</p>
+        <p>For more information please check the more detailed <a href="{% link dev/table/streaming/temporal_tables.md %}">Temporal Tables</a> concept description.</p>
+        <p>Only supported in Blink planner.</p>
+      </td>
+    </tr>    
+    <tr>
+      <td>
+        <strong>Join with Temporal Table Function</strong><br>
+        <span class="label label-primary">Streaming</span>
+      </td>
+      <td>
+        <p><a href="{% link dev/table/streaming/temporal_tables.md %}">Temporal tables</a> are tables that track changes over time.</p>
+        <p>A <a href="{% link dev/table/streaming/temporal_tables.md %}#temporal-table-functions">Temporal table function</a> provides access to the state of a temporal table at a specific point in time.
+        The syntax to join a table with a temporal table function is the same as in <i>Join with Table Function</i>.</p>
+
+        <p><b>Note:</b> Currently only inner joins with temporal tables are supported.</p>
+
+        <p>Assuming <i>Rates</i> is a <a href="{% link dev/table/streaming/temporal_tables.md %}#temporal-table-functions">temporal table function</a>, the join can be expressed in SQL as follows:</p>
+{% highlight sql %}
+SELECT
+  o_amount, r_rate
+FROM
+  Orders,
+  LATERAL TABLE (Rates(o_proctime))
+WHERE
+  r_currency = o_currency
+{% endhighlight %}
+        <p>For more information please check the more detailed <a href="{% link dev/table/streaming/temporal_tables.md %}">temporal tables concept description</a>.</p>
+      </td>
+    </tr>
+  </tbody>
 </table>
-<p>&nbsp;</p>
+</div>
 
+{% top %}
 
-### 集合操作
+### Set Operations
 
+<div markdown="1">
 <table class="table table-bordered">
-<thead>
-<tr>
-<th class="text-left">操作符</th>
-<th class="text-center">描述</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Union</strong><br /><span class="label label-primary">批处理</span></td>
-<td>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="o">*</span>
-<span class="k">FROM</span> <span class="p">(</span>
-    <span class="p">(</span><span class="k">SELECT</span> <span class="k">user</span> <span class="k">FROM</span> <span class="n">Orders</span> <span class="k">WHERE</span> <span class="n">a</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
-  <span class="k">UNION</span>
-    <span class="p">(</span><span class="k">SELECT</span> <span class="k">user</span> <span class="k">FROM</span> <span class="n">Orders</span> <span class="k">WHERE</span> <span class="n">b</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
-<span class="p">)</span></code></pre>
-</figure>
-</td>
-</tr>
-<tr>
-<td><strong>UnionAll</strong><br /><span class="label label-primary">批处理</span>&nbsp;<span class="label label-primary">流处理</span></td>
-<td>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="o">*</span>
-<span class="k">FROM</span> <span class="p">(</span>
-    <span class="p">(</span><span class="k">SELECT</span> <span class="k">user</span> <span class="k">FROM</span> <span class="n">Orders</span> <span class="k">WHERE</span> <span class="n">a</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
-  <span class="k">UNION</span> <span class="k">ALL</span>
-    <span class="p">(</span><span class="k">SELECT</span> <span class="k">user</span> <span class="k">FROM</span> <span class="n">Orders</span> <span class="k">WHERE</span> <span class="n">b</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
-<span class="p">)</span></code></pre>
-</figure>
-</td>
-</tr>
-<tr>
-<td><strong>Intersect / Except</strong><br /><span class="label label-primary">批处理</span></td>
-<td>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="o">*</span>
-<span class="k">FROM</span> <span class="p">(</span>
-    <span class="p">(</span><span class="k">SELECT</span> <span class="k">user</span> <span class="k">FROM</span> <span class="n">Orders</span> <span class="k">WHERE</span> <span class="n">a</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
-  <span class="k">INTERSECT</span>
-    <span class="p">(</span><span class="k">SELECT</span> <span class="k">user</span> <span class="k">FROM</span> <span class="n">Orders</span> <span class="k">WHERE</span> <span class="n">b</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
-<span class="p">)</span></code></pre>
-</figure>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="o">*</span>
-<span class="k">FROM</span> <span class="p">(</span>
-    <span class="p">(</span><span class="k">SELECT</span> <span class="k">user</span> <span class="k">FROM</span> <span class="n">Orders</span> <span class="k">WHERE</span> <span class="n">a</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
-  <span class="k">EXCEPT</span>
-    <span class="p">(</span><span class="k">SELECT</span> <span class="k">user</span> <span class="k">FROM</span> <span class="n">Orders</span> <span class="k">WHERE</span> <span class="n">b</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
-<span class="p">)</span></code></pre>
-</figure>
-</td>
-</tr>
-<tr>
-<td><strong>In</strong><br /><span class="label label-primary">批处理</span>&nbsp;<span class="label label-primary">流处理</span></td>
-<td>
-<p>若表达式在给定的表子查询中存在，则返回 true 。子查询表必须由单个列构成，且该列的数据类型需与表达式保持一致。</p>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="k">user</span><span class="p">,</span> <span class="n">amount</span>
-<span class="k">FROM</span> <span class="n">Orders</span>
-<span class="k">WHERE</span> <span class="n">product</span> <span class="k">IN</span> <span class="p">(</span>
-    <span class="k">SELECT</span> <span class="n">product</span> <span class="k">FROM</span> <span class="n">NewProducts</span>
-<span class="p">)</span></code></pre>
-</figure>
-<p><strong>注意：</strong>&nbsp;在流查询中，这一操作将会被重写为 join 和 group 操作。该查询所需要的状态可能会由于不同的输入行数而导致无限增长。请在查询配置中提合理的保留间隔以避免产生状态过大。请阅读&nbsp;<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/streaming/query_configuration.html">查询配置</a>&nbsp;以了解详细信息</p>
-</td>
-</tr>
-<tr>
-<td><strong>Exists</strong><br /><span class="label label-primary">批处理</span>&nbsp;<span class="label label-primary">流处理</span></td>
-<td>
-<p>若子查询的结果多于一行，将返回 true 。仅支持可以被通过 join 和 group 重写的操作。</p>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="k">user</span><span class="p">,</span> <span class="n">amount</span>
-<span class="k">FROM</span> <span class="n">Orders</span>
-<span class="k">WHERE</span> <span class="n">product</span> <span class="k">EXISTS</span> <span class="p">(</span>
-    <span class="k">SELECT</span> <span class="n">product</span> <span class="k">FROM</span> <span class="n">NewProducts</span>
-<span class="p">)</span></code></pre>
-</figure>
-<p><strong>注意：</strong>&nbsp;在流查询中，这一操作将会被重写为 join 和 group 操作。该查询所需要的状态可能会由于不同的输入行数而导致无限增长。请在查询配置中提合理的保留间隔以避免产生状态过大。请阅读&nbsp;<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/streaming/query_configuration.html">查询配置</a>&nbsp;以了解详细信息</p>
-</td>
-</tr>
-</tbody>
-</table>
-<p>&nbsp;</p>
+  <thead>
+    <tr>
+      <th class="text-left" style="width: 20%">Operation</th>
+      <th class="text-center">Description</th>
+    </tr>
+  </thead>
+  <tbody>
+  	<tr>
+      <td>
+        <strong>Union</strong><br>
+        <span class="label label-primary">Batch</span>
+      </td>
+      <td>
+{% highlight sql %}
+SELECT *
+FROM (
+    (SELECT user FROM Orders WHERE a % 2 = 0)
+  UNION
+    (SELECT user FROM Orders WHERE b = 0)
+)
+{% endhighlight %}
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <strong>UnionAll</strong><br>
+        <span class="label label-primary">Batch</span> <span class="label label-primary">Streaming</span>
+      </td>
+      <td>
+{% highlight sql %}
+SELECT *
+FROM (
+    (SELECT user FROM Orders WHERE a % 2 = 0)
+  UNION ALL
+    (SELECT user FROM Orders WHERE b = 0)
+)
+{% endhighlight %}
+      </td>
+    </tr>
 
+    <tr>
+      <td>
+        <strong>Intersect / Except</strong><br>
+        <span class="label label-primary">Batch</span>
+      </td>
+      <td>
+{% highlight sql %}
+SELECT *
+FROM (
+    (SELECT user FROM Orders WHERE a % 2 = 0)
+  INTERSECT
+    (SELECT user FROM Orders WHERE b = 0)
+)
+{% endhighlight %}
+{% highlight sql %}
+SELECT *
+FROM (
+    (SELECT user FROM Orders WHERE a % 2 = 0)
+  EXCEPT
+    (SELECT user FROM Orders WHERE b = 0)
+)
+{% endhighlight %}
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        <strong>In</strong><br>
+        <span class="label label-primary">Batch</span> <span class="label label-primary">Streaming</span>
+      </td>
+      <td>
+        <p>Returns true if an expression exists in a given table sub-query. The sub-query table must consist of one column. This column must have the same data type as the expression.</p>
+{% highlight sql %}
+SELECT user, amount
+FROM Orders
+WHERE product IN (
+    SELECT product FROM NewProducts
+)
+{% endhighlight %}
+        <p><b>Note:</b> For streaming queries the operation is rewritten in a join and group operation. The required state to compute the query result might grow infinitely depending on the number of distinct input rows. Please provide a query configuration with valid retention interval to prevent excessive state size. See <a href="{% link dev/table/streaming/query_configuration.md %}">Query Configuration</a> for details.</p>
+      </td>
+    </tr>
+
+    <tr>
+      <td>
+        <strong>Exists</strong><br>
+        <span class="label label-primary">Batch</span> <span class="label label-primary">Streaming</span>
+      </td>
+      <td>
+        <p>Returns true if the sub-query returns at least one row. Only supported if the operation can be rewritten in a join and group operation.</p>
+{% highlight sql %}
+SELECT user, amount
+FROM Orders
+WHERE product EXISTS (
+    SELECT product FROM NewProducts
+)
+{% endhighlight %}
+        <p><b>Note:</b> For streaming queries the operation is rewritten in a join and group operation. The required state to compute the query result might grow infinitely depending on the number of distinct input rows. Please provide a query configuration with valid retention interval to prevent excessive state size. See <a href="{% link dev/table/streaming/query_configuration.md %}">Query Configuration</a> for details.</p>
+      </td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+{% top %}
 
 ### OrderBy & Limit
 
+<div markdown="1">
 <table class="table table-bordered">
-<thead>
-<tr>
-<th class="text-left">操作符</th>
-<th class="text-center">描述</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Order By</strong><br /><span class="label label-primary">批处理</span>&nbsp;<span class="label label-primary">流处理</span></td>
-<td><strong>注意：</strong>&nbsp;流处理结果需主要根据&nbsp;<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/streaming/time_attributes.html">时间属性</a>&nbsp;按照升序进行排序。支持使用其他排序属性。
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="o">*</span>
-<span class="k">FROM</span> <span class="n">Orders</span>
-<span class="k">ORDER</span> <span class="k">BY</span> <span class="n">orderTime</span></code></pre>
-</figure>
-</td>
-</tr>
-<tr>
-<td><strong>Limit</strong><br /><span class="label label-primary">批处理</span></td>
-<td><strong>注意：</strong>&nbsp;LIMIT 查询需要有一个 ORDER BY 字句。
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="o">*</span>
-<span class="k">FROM</span> <span class="n">Orders</span>
-<span class="k">ORDER</span> <span class="k">BY</span> <span class="n">orderTime</span>
-<span class="k">LIMIT</span> <span class="mi">3</span></code></pre>
-</figure>
-</td>
-</tr>
-</tbody>
+  <thead>
+    <tr>
+      <th class="text-left" style="width: 20%">Operation</th>
+      <th class="text-center">Description</th>
+    </tr>
+  </thead>
+  <tbody>
+  	<tr>
+      <td>
+        <strong>Order By</strong><br>
+        <span class="label label-primary">Batch</span> <span class="label label-primary">Streaming</span>
+      </td>
+      <td>
+<b>Note:</b> The result of streaming queries must be primarily sorted on an ascending <a href="{% link dev/table/streaming/time_attributes.md %}">time attribute</a>. Additional sorting attributes are supported.
+
+{% highlight sql %}
+SELECT *
+FROM Orders
+ORDER BY orderTime
+{% endhighlight %}
+      </td>
+    </tr>
+
+    <tr>
+      <td><strong>Limit</strong><br>
+        <span class="label label-primary">Batch</span>
+      </td>
+      <td>
+<b>Note:</b> The LIMIT clause requires an ORDER BY clause.
+{% highlight sql %}
+SELECT *
+FROM Orders
+ORDER BY orderTime
+LIMIT 3
+{% endhighlight %}
+      </td>
+    </tr>
+
+  </tbody>
 </table>
-<p>&nbsp;</p>
+</div>
+
+{% top %}
 
 ### Top-N
-- **注意**： 目前仅 Blink 计划器支持 Top-N 。
-Top-N 查询是根据列排序找到N个最大或最小的值。最大值集和最小值集都被视为是一种 Top-N 的查询。若在批处理或流处理的表中需要显示出满足条件的 N 个最底层记录或最顶层记录， Top-N 查询将会十分有用。得到的结果集将可以进行进一步的分析。
 
-Flink 使用 OVER 窗口条件和过滤条件相结合以进行 Top-N 查询。利用 OVER 窗口的 PARTITION BY 子句的功能，Flink 还支持逐组 Top-N 。 例如，每个类别中实时销量最高的前五种产品。批处理表和流处理表都支持基于SQL的 Top-N 查询。 以下是 TOP-N 表达式的语法:
+<span class="label label-danger">Attention</span> Top-N is only supported in Blink planner.
 
-```sqlite-psql
+Top-N queries ask for the N smallest or largest values ordered by columns. Both smallest and largest values sets are considered Top-N queries. Top-N queries are useful in cases where the need is to display only the N bottom-most or the N top-
+most records from batch/streaming table on a condition. This result set can be used for further analysis.
+
+Flink uses the combination of a OVER window clause and a filter condition to express a Top-N query. With the power of OVER window `PARTITION BY` clause, Flink also supports per group Top-N. For example, the top five products per category that have the maximum sales in realtime. Top-N queries are supported for SQL on batch and streaming tables.
+
+The following shows the syntax of the TOP-N statement:
+
+{% highlight sql %}
 SELECT [column_list]
 FROM (
    SELECT [column_list],
@@ -697,31 +953,35 @@ FROM (
        ORDER BY col1 [asc|desc][, col2 [asc|desc]...]) AS rownum
    FROM table_name)
 WHERE rownum <= N [AND conditions]
-```
+{% endhighlight %}
 
-**参数说明：**
-- `ROW_NUMBER()`: 根据当前分区内的各行的顺序从第一行开始，依次为每一行分配一个唯一且连续的号码。目前，我们只支持  `ROW_NUMBER`  在 over 窗口函数中使用。未来将会支持  `RANK()`  和  `DENSE_RANK()`函数。
-- `PARTITION BY col1[, col2...]`: 指定分区列，每个分区都将会有一个 Top-N 结果。
-- `ORDER BY col1 [asc|desc][, col2 [asc|desc]...]`: 指定排序列，不同列的排序方向可以不一样。
-- `WHERE rownum <= N`: Flink 需要  `rownum <= N`  才能识别一个查询是否为 Top-N 查询。 其中， N 代表最大或最小的 N 条记录会被保留。
-- `[AND conditions]`: 在 where 语句中，可以随意添加其他的查询条件，但其他条件只允许通过  `AND`  与  `rownum <= N`  结合使用。
+**Parameter Specification:**
 
-**流处理模式需注意** TopN 查询的结果会带有更新。 Flink SQL 会根据排序键对输入的流进行排序；若 top N 的记录发生了变化，变化的部分会以撤销、更新记录的形式发送到下游。 推荐使用一个支持更新的存储作为 Top-N 查询的 sink 。另外，若 top N 记录需要存储到外部存储，则结果表需要拥有相同与 Top-N 查询相同的唯一键。
+- `ROW_NUMBER()`: Assigns an unique, sequential number to each row, starting with one, according to the ordering of rows within the partition. Currently, we only support `ROW_NUMBER` as the over window function. In the future, we will support `RANK()` and `DENSE_RANK()`.
+- `PARTITION BY col1[, col2...]`: Specifies the partition columns. Each partition will have a Top-N result.
+- `ORDER BY col1 [asc|desc][, col2 [asc|desc]...]`: Specifies the ordering columns. The ordering directions can be different on different columns.
+- `WHERE rownum <= N`: The `rownum <= N` is required for Flink to recognize this query is a Top-N query. The N represents the N smallest or largest records will be retained.
+- `[AND conditions]`: It is free to add other conditions in the where clause, but the other conditions can only be combined with `rownum <= N` using `AND` conjunction.
 
-Top-N 的唯一键是分区列和 rownum 列的结合，另外 Top-N 查询也可以获得上游的唯一键。以下面的任务为例，product_id 是 ShopSales 的唯一键，然后 Top-N 的唯一键是 [category, rownum] 和 [product_id] 。
+<span class="label label-danger">Attention in Streaming Mode</span> The TopN query is <span class="label label-info">Result Updating</span>. Flink SQL will sort the input data stream according to the order key, so if the top N records have been changed, the changed ones will be sent as retraction/update records to downstream.
+It is recommended to use a storage which supports updating as the sink of Top-N query. In addition, if the top N records need to be stored in external storage, the result table should have the same unique key with the Top-N query.
 
-下面的样例描述了如何指定带有 Top-N 的 SQL 查询。这个例子的作用是我们上面提到的“查询每个分类实时销量最大的五个产品”。
+The unique keys of Top-N query is the combination of partition columns and rownum column. Top-N query can also derive the unique key of upstream. Take following job as an example, say `product_id` is the unique key of the `ShopSales`, then the unique keys of the Top-N query are [`category`, `rownum`] and [`product_id`].
 
-```java
+The following examples show how to specify SQL queries with Top-N on streaming tables. This is an example to get "the top five products per category that have the maximum sales in realtime" we mentioned above.
+
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
 StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 StreamTableEnvironment tableEnv = TableEnvironment.getTableEnvironment(env);
 
-// 接收来自外部数据源的 DataStream
-DataStream<Tuple3<String, String, String, Long>> ds = env.addSource(...);
-// 把 DataStream 注册为表，表名是 “ShopSales”
-tableEnv.createTemporaryView("ShopSales", ds, "product_id, category, product_name, sales");
+// ingest a DataStream from an external source
+DataStream<Tuple4<String, String, String, Long>> ds = env.addSource(...);
+// register the DataStream as table "ShopSales"
+tableEnv.createTemporaryView("ShopSales", ds, $("product_id"), $("category"), $("product_name"), $("sales"));
 
-// 选择每个分类中销量前5的产品
+// select top-5 products per category which have the maximum sales.
 Table result1 = tableEnv.sqlQuery(
   "SELECT * " +
   "FROM (" +
@@ -729,18 +989,21 @@ Table result1 = tableEnv.sqlQuery(
   "       ROW_NUMBER() OVER (PARTITION BY category ORDER BY sales DESC) as row_num" +
   "   FROM ShopSales)" +
   "WHERE row_num <= 5");
-```
-```scala
+{% endhighlight %}
+</div>
+
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
 val env = StreamExecutionEnvironment.getExecutionEnvironment
 val tableEnv = TableEnvironment.getTableEnvironment(env)
 
-// 读取外部数据源的 DataStream
+// read a DataStream from an external source
 val ds: DataStream[(String, String, String, Long)] = env.addSource(...)
-// 注册名为 “ShopSales” 的 DataStream
-tableEnv.createTemporaryView("ShopSales", ds, 'product_id, 'category, 'product_name, 'sales)
+// register the DataStream under the name "ShopSales"
+tableEnv.createTemporaryView("ShopSales", ds, $"product_id", $"category", $"product_name", $"sales")
 
 
-// 选择每个分类中销量前5的产品
+// select top-5 products per category which have the maximum sales.
 val result1 = tableEnv.sqlQuery(
     """
       |SELECT *
@@ -750,25 +1013,30 @@ val result1 = tableEnv.sqlQuery(
       |   FROM ShopSales)
       |WHERE row_num <= 5
     """.stripMargin)
-```
+{% endhighlight %}
+</div>
+</div>
 
-#### 无排名输出优化
+#### No Ranking Output Optimization
 
-如上文所描述，`rownum`  字段会作为唯一键的其中一个字段写到结果表里面，这会导致大量的结果写出到结果表。比如，当原始结果（名为  `product-1001` ）从排序第九变化为排序第一时，排名 1-9 的所有结果都会以更新消息的形式发送到结果表。若结果表收到太多的数据，将会成为 SQL 任务的瓶颈。
+As described above, the `rownum` field will be written into the result table as one field of the unique key, which may lead to a lot of records being written to the result table. For example, when the record (say `product-1001`) of ranking 9 is updated and its rank is upgraded to 1, all the records from ranking 1 ~ 9 will be output to the result table as update messages. If the result table receives too many data, it will become the bottleneck of the SQL job.
 
-优化方法是在 Top-N 查询的外部 SELECT 子句中省略 rownum 字段。由于前 N 条记录的数量通常不大，因此消费者可以自己对记录进行快速排序，因此这是合理的。去掉 rownum 字段后，上述的例子中，只有变化了的记录（ `product-1001` ）需要发送到下游，从而可以节省大量的对结果表的 IO 操作。
+The optimization way is omitting rownum field in the outer SELECT clause of the Top-N query. This is reasonable because the number of the top N records is usually not large, thus the consumers can sort the records themselves quickly. Without rownum field, in the example above, only the changed record (`product-1001`) needs to be sent to downstream, which can reduce much IO to the result table.
 
-以下的例子描述了如何以这种方式优化上述的 Top-N 查询：
-```java
+The following example shows how to optimize the above Top-N example in this way:
+
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
 StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 StreamTableEnvironment tableEnv = TableEnvironment.getTableEnvironment(env);
 
-// 从外部数据源读取 DataStream
-DataStream<Tuple3<String, String, String, Long>> ds = env.addSource(...);
-// 把 DataStream 注册为表，表名是 “ShopSales”
-tableEnv.createTemporaryView("ShopSales", ds, "product_id, category, product_name, sales");
+// ingest a DataStream from an external source
+DataStream<Tuple4<String, String, String, Long>> ds = env.addSource(...);
+// register the DataStream as table "ShopSales"
+tableEnv.createTemporaryView("ShopSales", ds, $("product_id"), $("category"), $("product_name"), $("sales"));
 
-// 选择每个分类中销量前5的产品
+// select top-5 products per category which have the maximum sales.
 Table result1 = tableEnv.sqlQuery(
   "SELECT product_id, category, product_name, sales " + // omit row_num field in the output
   "FROM (" +
@@ -776,19 +1044,21 @@ Table result1 = tableEnv.sqlQuery(
   "       ROW_NUMBER() OVER (PARTITION BY category ORDER BY sales DESC) as row_num" +
   "   FROM ShopSales)" +
   "WHERE row_num <= 5");
-```
+{% endhighlight %}
+</div>
 
-```scala
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
 val env = StreamExecutionEnvironment.getExecutionEnvironment
 val tableEnv = TableEnvironment.getTableEnvironment(env)
 
-// 从外部数据源读取 DataStream
+// read a DataStream from an external source
 val ds: DataStream[(String, String, String, Long)] = env.addSource(...)
-// 注册名为 “ShopSales” 的数据源
-tableEnv.createTemporaryView("ShopSales", ds, 'product_id, 'category, 'product_name, 'sales)
+// register the DataStream under the name "ShopSales"
+tableEnv.createTemporaryView("ShopSales", ds, $"product_id", $"category", $"product_name", $"sales")
 
 
-// 选择每个分类中销量前5的产品
+// select top-5 products per category which have the maximum sales.
 val result1 = tableEnv.sqlQuery(
     """
       |SELECT product_id, category, product_name, sales  -- omit row_num field in the output
@@ -798,24 +1068,25 @@ val result1 = tableEnv.sqlQuery(
       |   FROM ShopSales)
       |WHERE row_num <= 5
     """.stripMargin)
-```
+{% endhighlight %}
+</div>
+</div>
 
+<span class="label label-danger">Attention in Streaming Mode</span> In order to output the above query to an external storage and have a correct result, the external storage must have the same unique key with the Top-N query. In the above example query, if the `product_id` is the unique key of the query, then the external table should also has `product_id` as the unique key.
 
-- **使用流处理模式时需注意**   
-  - 为了使上述查询输出可以输出到外部存储并且结果正确，外部存储需要拥有与 Top-N 查询一致的唯一键。在上述的查询例子中，若  `product_id`  是查询的唯一键，那么外部表必须要有  `product_id`  作为其唯一键。
+{% top %}
 
-### 去重
+### Deduplication
 
-- **注意**
-  - 仅 Blink planner 支持去重。
+<span class="label label-danger">Attention</span> Deduplication is only supported in Blink planner.
 
-去重是指对在列的集合内重复的行进行删除，只保留第一行或最后一行数据。 在某些情况下，上游的 ETL 作业不能实现精确一次的端到端，这将可能导致在故障恢复 时，sink 中有重复的记录。 由于重复的记录将影响下游分析作业的正确性（例如，`SUM`、`COUNT`）， 所以在进一步分析之前需要进行数据去重。
+Deduplication is removing rows that duplicate over a set of columns, keeping only the first one or the last one. In some cases, the upstream ETL jobs are not end-to-end exactly-once, this may result in there are duplicate records in the sink in case of failover. However, the duplicate records will affect the correctness of downstream analytical jobs (e.g. `SUM`, `COUNT`). So a deduplication is needed before further analysis.
 
-与 Top-N 查询相似，Flink 使用  `ROW_NUMBER()`  去除重复的记录。理论上来说，去重是一个特殊的 Top-N 查询，其中 N 是 1 ，记录则是以处理时间或事件事件进行排序的。
+Flink uses `ROW_NUMBER()` to remove duplicates just like the way of Top-N query. In theory, deduplication is a special case of Top-N which the N is one and order by the processing time or event time.
 
-以下代码展示了去重语句的语法：
+The following shows the syntax of the Deduplication statement:
 
-```sqlite-psql
+{% highlight sql %}
 SELECT [column_list]
 FROM (
    SELECT [column_list],
@@ -823,25 +1094,30 @@ FROM (
        ORDER BY time_attr [asc|desc]) AS rownum
    FROM table_name)
 WHERE rownum = 1
-```
+{% endhighlight %}
 
-**参数说明：**
-- `ROW_NUMBER()`: 从第一行开始，依次为每一行分配一个唯一且连续的号码。
-- `PARTITION BY col1[, col2...]`: 指定分区的列，例如去重的键。
-- `ORDER BY time_attr [asc|desc]`: 指定排序的列。所制定的列必须为  [时间属性](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/streaming/time_attributes.html)。目前仅支持  [proctime attribute](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/streaming/time_attributes.html#processing-time)，在未来版本中将会支持  [Rowtime atttribute](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/streaming/time_attributes.html#event-time) 。升序（ ASC ）排列指只保留第一行，而降序排列（ DESC ）则指保留最后一行。
-- `WHERE rownum = 1`: Flink 需要  `rownum = 1`  以确定该查询是否为去重查询。
+**Parameter Specification:**
 
-以下的例子描述了如何指定 SQL 查询以在一个流计算表中进行去重操作。
-```java
+- `ROW_NUMBER()`: Assigns an unique, sequential number to each row, starting with one.
+- `PARTITION BY col1[, col2...]`: Specifies the partition columns, i.e. the deduplicate key.
+- `ORDER BY time_attr [asc|desc]`: Specifies the ordering column, it must be a [time attribute]({% link dev/table/streaming/time_attributes.md %}). Currently Flink supports [processing time attribute]({% link dev/table/streaming/time_attributes.md %}#processing-time) and [event time atttribute]({% link dev/table/streaming/time_attributes.md %}#event-time). Ordering by ASC means keeping the first row, ordering by DESC means keeping the last row.
+- `WHERE rownum = 1`: The `rownum = 1` is required for Flink to recognize this query is deduplication.
+
+The following examples show how to specify SQL queries with Deduplication on streaming tables.
+
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
 StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 StreamTableEnvironment tableEnv = TableEnvironment.getTableEnvironment(env);
 
-// 从外部数据源读取 DataStream
-DataStream<Tuple3<String, String, String, Integer>> ds = env.addSource(...);
-// 注册名为 “Orders” 的 DataStream
-tableEnv.createTemporaryView("Orders", ds, "order_id, user, product, number, proctime.proctime");
+// ingest a DataStream from an external source
+DataStream<Tuple4<String, String, String, Integer>> ds = env.addSource(...);
+// register the DataStream as table "Orders"
+tableEnv.createTemporaryView("Orders", ds, $("order_id"), $("user"), $("product"), $("number"), $("proctime").proctime());
 
-// 由于不应该出现两个订单有同一个order_id，所以根据 order_id 去除重复的行，并保留第一行
+// remove duplicate rows on order_id and keep the first occurrence row,
+// because there shouldn't be two orders with the same order_id.
 Table result1 = tableEnv.sqlQuery(
   "SELECT order_id, user, product, number " +
   "FROM (" +
@@ -849,18 +1125,21 @@ Table result1 = tableEnv.sqlQuery(
   "       ROW_NUMBER() OVER (PARTITION BY order_id ORDER BY proctime ASC) as row_num" +
   "   FROM Orders)" +
   "WHERE row_num = 1");
-```
+{% endhighlight %}
+</div>
 
-```scala
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
 val env = StreamExecutionEnvironment.getExecutionEnvironment
 val tableEnv = TableEnvironment.getTableEnvironment(env)
 
-// 从外部数据源读取 DataStream
+// read a DataStream from an external source
 val ds: DataStream[(String, String, String, Int)] = env.addSource(...)
-// 注册名为 “Orders” 的 DataStream
-tableEnv.createTemporaryView("Orders", ds, 'order_id, 'user, 'product, 'number, 'proctime.proctime)
+// register the DataStream under the name "Orders"
+tableEnv.createTemporaryView("Orders", ds, $"order_id", $"user", $"product", $"number", $"proctime".proctime)
 
-// 由于不应该出现两个订单有同一个order_id，所以根据 order_id 去除重复的行，并保留第一行
+// remove duplicate rows on order_id and keep the first occurrence row,
+// because there shouldn't be two orders with the same order_id.
 val result1 = tableEnv.sqlQuery(
     """
       |SELECT order_id, user, product, number
@@ -870,112 +1149,130 @@ val result1 = tableEnv.sqlQuery(
       |   FROM Orders)
       |WHERE row_num = 1
     """.stripMargin)
-```
+{% endhighlight %}
+</div>
+</div>
 
-### 分组窗口
+{% top %}
 
-<table class="table table-bordered">
-<thead>
-<tr>
-<th class="text-left">分组窗口函数</th>
-<th class="text-left">描述</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>TUMBLE(time_attr, interval)</code></td>
-<td>定义一个滚动窗口。滚动窗口把行分配到有固定持续时间（&nbsp;<code>interval</code>&nbsp;）的不重叠的连续窗口。比如，5 分钟的滚动窗口以 5 分钟为间隔对行进行分组。滚动窗口可以定义在事件时间（批处理、流处理）或处理时间（流处理）上。</td>
-</tr>
-<tr>
-<td><code>HOP(time_attr, interval, interval)</code></td>
-<td>定义一个跳跃的时间窗口（在 Table API 中称为滑动窗口）。滑动窗口有一个固定的持续时间（ 第二个&nbsp;<code>interval</code>&nbsp;参数 ）以及一个滑动的间隔（第一个&nbsp;<code>interval</code>&nbsp;参数 ）。若滑动间隔小于窗口的持续时间，滑动窗口则会出现重叠；因此，行将会被分配到多个窗口中。比如，一个大小为 15 分组的滑动窗口，其滑动间隔为 5 分钟，将会把每一行数据分配到 3 个 15 分钟的窗口中。滑动窗口可以定义在事件时间（批处理、流处理）或处理时间（流处理）上。</td>
-</tr>
-<tr>
-<td><code>SESSION(time_attr, interval)</code></td>
-<td>定义一个会话时间窗口。会话时间窗口没有一个固定的持续时间，但是它们的边界会根据&nbsp;<code>interval</code>&nbsp;所定义的不活跃时间所确定；即一个会话时间窗口在定义的间隔时间内没有时间出现，该窗口会被关闭。例如时间窗口的间隔时间是 30 分钟，当其不活跃的时间达到30分钟后，若观测到新的记录，则会启动一个新的会话时间窗口（否则该行数据会被添加到当前的窗口），且若在 30 分钟内没有观测到新纪录，这个窗口将会被关闭。会话时间窗口可以使用事件时间（批处理、流处理）或处理时间（流处理）。</td>
-</tr>
-</tbody>
-</table>
+Deduplication can keep the time attribute of input stream, this is very helpful when the downstream operation is window aggregation or join operation.
+Both processing-time deduplication and event-time deduplication support working on mini-batch mode, this is more performance friendly, please see also [mini-batch configuration]({% link dev/table/config.md %}#table-exec-mini-batch-enabled) for how to enable mini-batch mode..
 
+### Group Windows
 
-#### 时间属性
-
-在流处理表中的 SQL 查询中，分组窗口函数的  `time_attr`  参数必须引用一个合法的时间属性，且该属性需要指定行的处理时间或事件时间。可参考  [时间属性文档](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/streaming/time_attributes.html)  以了解如何定义时间属性。
-
-对于批处理的 SQL 查询，分组窗口函数的  `time_attr`  参数必须是一个  `TIMESTAMP`  类型的属性。
-
-#### 选择分组窗口的开始和结束时间戳
-
-可以使用以下辅助函数选择组窗口的开始和结束时间戳以及时间属性：
+Group windows are defined in the `GROUP BY` clause of a SQL query. Just like queries with regular `GROUP BY` clauses, queries with a `GROUP BY` clause that includes a group window function compute a single result row per group. The following group windows functions are supported for SQL on batch and streaming tables.
 
 <table class="table table-bordered">
-<thead>
-<tr>
-<th class="text-left">辅助函数</th>
-<th class="text-left">描述</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>TUMBLE_START(time_attr, interval)</code><br /><code>HOP_START(time_attr, interval, interval)</code><br /><code>SESSION_START(time_attr, interval)</code></td>
-<td>
-<p>返回相对应的滚动、滑动和会话窗口范围内的下界时间戳。</p>
-</td>
-</tr>
-<tr>
-<td><code>TUMBLE_END(time_attr, interval)</code><br /><code>HOP_END(time_attr, interval, interval)</code><br /><code>SESSION_END(time_attr, interval)</code></td>
-<td>
-<p>返回相对应的滚动、滑动和会话窗口<em>范围以外</em>的上界时间戳。</p>
-<p><strong>注意：</strong>&nbsp;范围以外的上界时间戳<em>不可以</em>&nbsp;在随后基于时间的操作中，作为&nbsp;<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/streaming/time_attributes.html">行时间属性</a>&nbsp;使用，比如&nbsp;<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/sql/queries.html#joins">基于时间窗口的 join&nbsp;</a>以及&nbsp;<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/sql/queries.html#aggregations">分组窗口或分组窗口上的聚合</a>。</p>
-</td>
-</tr>
-<tr>
-<td><code>TUMBLE_ROWTIME(time_attr, interval)</code><br /><code>HOP_ROWTIME(time_attr, interval, interval)</code><br /><code>SESSION_ROWTIME(time_attr, interval)</code></td>
-<td>
-<p>返回相对应的滚动、滑动和会话窗口<em>范围以内</em>的上界时间戳。</p>
-<p>返回的是一个可用于后续需要基于时间的操作的<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/streaming/time_attributes.html">时间属性（rowtime attribute）</a>，比如<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/sql/queries.html#joins">基于时间窗口的 join&nbsp;</a>以及&nbsp;<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/sql/queries.html#aggregations">分组窗口或分组窗口上的聚合</a>。</p>
-</td>
-</tr>
-<tr>
-<td><code>TUMBLE_PROCTIME(time_attr, interval)</code><br /><code>HOP_PROCTIME(time_attr, interval, interval)</code><br /><code>SESSION_PROCTIME(time_attr, interval)</code></td>
-<td>
-<p>返回一个可用于后续需要基于时间的操作的&nbsp;<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/streaming/time_attributes.html#processing-time">处理时间参数</a>，比如<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/sql/queries.html#joins">基于时间窗口的 join&nbsp;</a>以及&nbsp;<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/sql/queries.html#aggregations">分组窗口或分组窗口上的聚合</a>.</p>
-</td>
-</tr>
-</tbody>
+  <thead>
+    <tr>
+      <th class="text-left" style="width: 30%">Group Window Function</th>
+      <th class="text-left">Description</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <tr>
+      <td><code>TUMBLE(time_attr, interval)</code></td>
+      <td>Defines a tumbling time window. A tumbling time window assigns rows to non-overlapping, continuous windows with a fixed duration (<code>interval</code>). For example, a tumbling window of 5 minutes groups rows in 5 minutes intervals. Tumbling windows can be defined on event-time (stream + batch) or processing-time (stream).</td>
+    </tr>
+    <tr>
+      <td><code>HOP(time_attr, interval, interval)</code></td>
+      <td>Defines a hopping time window (called sliding window in the Table API). A hopping time window has a fixed duration (second <code>interval</code> parameter) and hops by a specified hop interval (first <code>interval</code> parameter). If the hop interval is smaller than the window size, hopping windows are overlapping. Thus, rows can be assigned to multiple windows. For example, a hopping window of 15 minutes size and 5 minute hop interval assigns each row to 3 different windows of 15 minute size, which are evaluated in an interval of 5 minutes. Hopping windows can be defined on event-time (stream + batch) or processing-time (stream).</td>
+    </tr>
+    <tr>
+      <td><code>SESSION(time_attr, interval)</code></td>
+      <td>Defines a session time window. Session time windows do not have a fixed duration but their bounds are defined by a time <code>interval</code> of inactivity, i.e., a session window is closed if no event appears for a defined gap period. For example a session window with a 30 minute gap starts when a row is observed after 30 minutes inactivity (otherwise the row would be added to an existing window) and is closed if no row is added within 30 minutes. Session windows can work on event-time (stream + batch) or processing-time (stream).</td>
+    </tr>
+  </tbody>
 </table>
-<p>&nbsp;</p>
 
+#### Time Attributes
 
-*注意：*  辅助函数必须使用与  `GROUP BY`  子句中的分组窗口函数完全相同的参数来调用.
+For SQL queries on streaming tables, the `time_attr` argument of the group window function must refer to a valid time attribute that specifies the processing time or event time of rows. See the [documentation of time attributes]({% link dev/table/streaming/time_attributes.md %}) to learn how to define time attributes.
 
-以下的例子展示了如何在流处理表中指定使用分组窗口函数的 SQL 查询。
+For SQL on batch tables, the `time_attr` argument of the group window function must be an attribute of type `TIMESTAMP`.
 
-```java
+#### Selecting Group Window Start and End Timestamps
+
+The start and end timestamps of group windows as well as time attributes can be selected with the following auxiliary functions:
+
+<table class="table table-bordered">
+  <thead>
+    <tr>
+      <th class="text-left" style="width: 40%">Auxiliary Function</th>
+      <th class="text-left">Description</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <tr>
+      <td>
+        <code>TUMBLE_START(time_attr, interval)</code><br/>
+        <code>HOP_START(time_attr, interval, interval)</code><br/>
+        <code>SESSION_START(time_attr, interval)</code><br/>
+      </td>
+      <td><p>Returns the timestamp of the inclusive lower bound of the corresponding tumbling, hopping, or session window.</p></td>
+    </tr>
+    <tr>
+      <td>
+        <code>TUMBLE_END(time_attr, interval)</code><br/>
+        <code>HOP_END(time_attr, interval, interval)</code><br/>
+        <code>SESSION_END(time_attr, interval)</code><br/>
+      </td>
+      <td><p>Returns the timestamp of the <i>exclusive</i> upper bound of the corresponding tumbling, hopping, or session window.</p>
+        <p><b>Note:</b> The exclusive upper bound timestamp <i>cannot</i> be used as a <a href="{% link dev/table/streaming/time_attributes.md %}">rowtime attribute</a> in subsequent time-based operations, such as <a href="#joins">interval joins</a> and <a href="#aggregations">group window or over window aggregations</a>.</p></td>
+    </tr>
+    <tr>
+      <td>
+        <code>TUMBLE_ROWTIME(time_attr, interval)</code><br/>
+        <code>HOP_ROWTIME(time_attr, interval, interval)</code><br/>
+        <code>SESSION_ROWTIME(time_attr, interval)</code><br/>
+      </td>
+      <td><p>Returns the timestamp of the <i>inclusive</i> upper bound of the corresponding tumbling, hopping, or session window.</p>
+      <p>The resulting attribute is a <a href="{% link dev/table/streaming/time_attributes.md %}">rowtime attribute</a> that can be used in subsequent time-based operations such as <a href="#joins">interval joins</a> and <a href="#aggregations">group window or over window aggregations</a>.</p></td>
+    </tr>
+    <tr>
+      <td>
+        <code>TUMBLE_PROCTIME(time_attr, interval)</code><br/>
+        <code>HOP_PROCTIME(time_attr, interval, interval)</code><br/>
+        <code>SESSION_PROCTIME(time_attr, interval)</code><br/>
+      </td>
+      <td><p>Returns a <a href="{% link dev/table/streaming/time_attributes.md %}#processing-time">proctime attribute</a> that can be used in subsequent time-based operations such as <a href="#joins">interval joins</a> and <a href="#aggregations">group window or over window aggregations</a>.</p></td>
+    </tr>
+  </tbody>
+</table>
+
+*Note:* Auxiliary functions must be called with exactly same arguments as the group window function in the `GROUP BY` clause.
+
+The following examples show how to specify SQL queries with group windows on streaming tables.
+
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
 StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env);
 
-// 从外部数据源读取 DataSource
+// ingest a DataStream from an external source
 DataStream<Tuple3<Long, String, Integer>> ds = env.addSource(...);
-// 使用“Orders”作为表名把 DataStream 注册为表
-tableEnv.createTemporaryView("Orders", ds, "user, product, amount, proctime.proctime, rowtime.rowtime");
+// register the DataStream as table "Orders"
+tableEnv.createTemporaryView("Orders", ds, $("user"), $("product"), $("amount"), $("proctime").proctime(), $("rowtime").rowtime());
 
-// 计算每日的 SUM(amount)（使用事件时间）
+// compute SUM(amount) per day (in event-time)
 Table result1 = tableEnv.sqlQuery(
   "SELECT user, " +
   "  TUMBLE_START(rowtime, INTERVAL '1' DAY) as wStart,  " +
   "  SUM(amount) FROM Orders " +
   "GROUP BY TUMBLE(rowtime, INTERVAL '1' DAY), user");
 
-// 计算每日的 SUM(amount)（使用处理时间）
+// compute SUM(amount) per day (in processing-time)
 Table result2 = tableEnv.sqlQuery(
   "SELECT user, SUM(amount) FROM Orders GROUP BY TUMBLE(proctime, INTERVAL '1' DAY), user");
 
-// 使用事件时间计算过去24小时中每小时的 SUM(amount) 
+// compute every hour the SUM(amount) of the last 24 hours in event-time
 Table result3 = tableEnv.sqlQuery(
   "SELECT product, SUM(amount) FROM Orders GROUP BY HOP(rowtime, INTERVAL '1' HOUR, INTERVAL '1' DAY), product");
 
-// 计算每个以12小时（事件时间）作为不活动时间的会话的 SUM(amount) 
+// compute SUM(amount) per session with 12 hour inactivity gap (in event-time)
 Table result4 = tableEnv.sqlQuery(
   "SELECT user, " +
   "  SESSION_START(rowtime, INTERVAL '12' HOUR) AS sStart, " +
@@ -983,18 +1280,21 @@ Table result4 = tableEnv.sqlQuery(
   "  SUM(amount) " +
   "FROM Orders " +
   "GROUP BY SESSION(rowtime, INTERVAL '12' HOUR), user");
-```
 
-```scala
+{% endhighlight %}
+</div>
+
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
 val env = StreamExecutionEnvironment.getExecutionEnvironment
 val tableEnv = StreamTableEnvironment.create(env)
 
-// 从外部数据源读取 DataSource
+// read a DataStream from an external source
 val ds: DataStream[(Long, String, Int)] = env.addSource(...)
-// 计算每日（使用处理时间）的 SUM(amount) 
-tableEnv.createTemporaryView("Orders", ds, 'user, 'product, 'amount, 'proctime.proctime, 'rowtime.rowtime)
+// register the DataStream under the name "Orders"
+tableEnv.createTemporaryView("Orders", ds, $"user", $"product", $"amount", $"proctime".proctime, $"rowtime".rowtime)
 
-// 计算每日的 SUM(amount) （使用事件时间）
+// compute SUM(amount) per day (in event-time)
 val result1 = tableEnv.sqlQuery(
     """
       |SELECT
@@ -1005,15 +1305,15 @@ val result1 = tableEnv.sqlQuery(
       | GROUP BY TUMBLE(rowtime, INTERVAL '1' DAY), user
     """.stripMargin)
 
-// 计算每日的 SUM(amount) （使用处理时间）
+// compute SUM(amount) per day (in processing-time)
 val result2 = tableEnv.sqlQuery(
   "SELECT user, SUM(amount) FROM Orders GROUP BY TUMBLE(proctime, INTERVAL '1' DAY), user")
 
-// 使用事件时间计算过去24小时中每小时的 SUM(amount) 
+// compute every hour the SUM(amount) of the last 24 hours in event-time
 val result3 = tableEnv.sqlQuery(
   "SELECT product, SUM(amount) FROM Orders GROUP BY HOP(rowtime, INTERVAL '1' HOUR, INTERVAL '1' DAY), product")
 
-// 计算每个以12小时（事件时间）作为不活动时间的会话的 SUM(amount) 
+// compute SUM(amount) per session with 12 hour inactivity gap (in event-time)
 val result4 = tableEnv.sqlQuery(
     """
       |SELECT
@@ -1024,43 +1324,55 @@ val result4 = tableEnv.sqlQuery(
       | FROM Orders
       | GROUP BY SESSION(rowtime(), INTERVAL '12' HOUR), user
     """.stripMargin)
-```
 
-### 模式匹配
+{% endhighlight %}
+</div>
+</div>
 
+{% top %}
+
+### Pattern Recognition
+
+<div markdown="1">
 <table class="table table-bordered">
-<thead>
-<tr>
-<th class="text-left">操作符</th>
-<th class="text-center">描述</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>MATCH_RECOGNIZE</strong><br /><span class="label label-primary">流处理</span></td>
-<td>
-<p>根据&nbsp;<code>MATCH_RECOGNIZE</code>&nbsp;<a href="https://standards.iso.org/ittf/PubliclyAvailableStandards/c065143_ISO_IEC_TR_19075-5_2016.zip">ISO 标准</a>在流处理表中搜索给定的模式。 这样就可以在SQL查询中描述复杂的事件处理（CEP）逻辑。</p>
-<p>更多详情请参考&nbsp;<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/table/streaming/match_recognize.html">检测表中的模式</a>.</p>
-<figure class="highlight">
-<pre><code class="language-sql" data-lang="sql"><span class="k">SELECT</span> <span class="n">T</span><span class="p">.</span><span class="n">aid</span><span class="p">,</span> <span class="n">T</span><span class="p">.</span><span class="n">bid</span><span class="p">,</span> <span class="n">T</span><span class="p">.</span><span class="n">cid</span>
-<span class="k">FROM</span> <span class="n">MyTable</span>
-<span class="n">MATCH_RECOGNIZE</span> <span class="p">(</span>
-  <span class="n">PARTITION</span> <span class="k">BY</span> <span class="n">userid</span>
-  <span class="k">ORDER</span> <span class="k">BY</span> <span class="n">proctime</span>
-  <span class="n">MEASURES</span>
-    <span class="n">A</span><span class="p">.</span><span class="n">id</span> <span class="k">AS</span> <span class="n">aid</span><span class="p">,</span>
-    <span class="n">B</span><span class="p">.</span><span class="n">id</span> <span class="k">AS</span> <span class="n">bid</span><span class="p">,</span>
-    <span class="k">C</span><span class="p">.</span><span class="n">id</span> <span class="k">AS</span> <span class="n">cid</span>
-  <span class="n">PATTERN</span> <span class="p">(</span><span class="n">A</span> <span class="n">B</span> <span class="k">C</span><span class="p">)</span>
-  <span class="n">DEFINE</span>
-    <span class="n">A</span> <span class="k">AS</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">'a'</span><span class="p">,</span>
-    <span class="n">B</span> <span class="k">AS</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">'b'</span><span class="p">,</span>
-    <span class="k">C</span> <span class="k">AS</span> <span class="n">name</span> <span class="o">=</span> <span class="s1">'c'</span>
-<span class="p">)</span> <span class="k">AS</span> <span class="n">T</span></code></pre>
-</figure>
-</td>
-</tr>
-</tbody>
-</table>
-<p>&nbsp;</p>
+  <thead>
+    <tr>
+      <th class="text-left" style="width: 20%">Operation</th>
+      <th class="text-center">Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>
+        <strong>MATCH_RECOGNIZE</strong><br>
+        <span class="label label-primary">Streaming</span>
+      </td>
+      <td>
+        <p>Searches for a given pattern in a streaming table according to the <code>MATCH_RECOGNIZE</code> <a href="https://standards.iso.org/ittf/PubliclyAvailableStandards/c065143_ISO_IEC_TR_19075-5_2016.zip">ISO standard</a>. This makes it possible to express complex event processing (CEP) logic in SQL queries.</p>
+        <p>For a more detailed description, see the dedicated page for <a href="{% link dev/table/streaming/match_recognize.md %}">detecting patterns in tables</a>.</p>
 
+{% highlight sql %}
+SELECT T.aid, T.bid, T.cid
+FROM MyTable
+MATCH_RECOGNIZE (
+  PARTITION BY userid
+  ORDER BY proctime
+  MEASURES
+    A.id AS aid,
+    B.id AS bid,
+    C.id AS cid
+  PATTERN (A B C)
+  DEFINE
+    A AS name = 'a',
+    B AS name = 'b',
+    C AS name = 'c'
+) AS T
+{% endhighlight %}
+      </td>
+    </tr>
+
+  </tbody>
+</table>
+</div>
+
+{% top %}

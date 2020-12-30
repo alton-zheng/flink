@@ -27,21 +27,17 @@
 # we change the version for the complete docs when forking of a release branch
 # etc.
 # The full version string as referenced in Maven (e.g. 1.2.1)
-version: "1.11-SNAPSHOT"
+version: "1.12.0"
 # For stable releases, leave the bugfix version out (e.g. 1.2). For snapshot
 # release this should be the same as the regular version
-version_title: "1.11-SNAPSHOT"
+version_title: 1.12
 # Branch on Github for this version
-github_branch: "master"
+github_branch: release-1.12
 
 # Plain Scala version is needed for e.g. the Gradle quickstart.
 scala_version: "2.11"
 # This suffix is appended to the Scala-dependent Maven artifact names
 scala_version_suffix: "_2.11"
-
-# Plain flink-shaded version is needed for e.g. the hive connector.
-# Please update the shaded_version once new flink-shaded is released.
-shaded_version: "8.0"
 
 # Some commonly linked pages (this was more important to have as a variable
 # during incubator; by now it should also be fine to hardcode these.)
@@ -49,21 +45,26 @@ website_url: "https://flink.apache.org"
 jira_url: "https://issues.apache.org/jira/browse/FLINK"
 github_url: "https://github.com/apache/flink"
 download_url: "https://flink.apache.org/downloads.html"
+zh_download_url: "https://flink.apache.org/zh/downloads.html"
 
 # please use a protocol relative URL here
-baseurl: //ci.apache.org/projects/flink/flink-docs-master
+baseurl: //ci.apache.org/projects/flink/flink-docs-release-1.12
 stable_baseurl: //ci.apache.org/projects/flink/flink-docs-stable
 
-javadocs_baseurl: //ci.apache.org/projects/flink/flink-docs-master
-pythondocs_baseurl: //ci.apache.org/projects/flink/flink-docs-master
+javadocs_baseurl: //ci.apache.org/projects/flink/flink-docs-release-1.12
+pythondocs_baseurl: //ci.apache.org/projects/flink/flink-docs-release-1.12
+
+statefundocs_baseurl: //ci.apache.org/projects/flink/flink-statefun-docs-master
+statefundocs_stable_baseurl: //ci.apache.org/projects/flink/flink-statefun-docs-stable
 
 # Flag whether this is a stable version or not. Used for the quickstart page.
-is_stable: false
+is_stable: true
 
 # Flag to indicate whether an outdated warning should be shown.
 show_outdated_warning: false
 
 previous_docs:
+  '1.11': http://ci.apache.org/projects/flink/flink-docs-release-1.11
   '1.10': http://ci.apache.org/projects/flink/flink-docs-release-1.10
   '1.9': http://ci.apache.org/projects/flink/flink-docs-release-1.9
   '1.8': http://ci.apache.org/projects/flink/flink-docs-release-1.8
@@ -85,7 +86,6 @@ previous_docs:
 
 exclude:
   - "build_docs.sh"
-  - "build_docs.bat"
   - "check_links.sh"
 
 # Used in some documents to initialize arrays. Don't delete.

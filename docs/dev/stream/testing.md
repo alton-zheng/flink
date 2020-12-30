@@ -1,4 +1,32 @@
-# 测试
+---
+title: "Testing"
+nav-parent_id: streaming
+nav-id: testing
+nav-pos: 99
+---
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+Testing is an integral part of every software development process as such Apache Flink comes with tooling to test your application code on multiple levels of the testing pyramid.
+
+* This will be replaced by the TOC
+{:toc}
 
 ## Testing User-Defined Functions
 
@@ -9,7 +37,9 @@ Usually, one can assume that Flink produces correct results outside of a user-de
 
 For example, let's take the following stateless `MapFunction`.
 
-```java
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
 public class IncrementMapFunction implements MapFunction<Long, Long> {
 
     @Override
@@ -17,22 +47,26 @@ public class IncrementMapFunction implements MapFunction<Long, Long> {
         return record + 1;
     }
 }
-```
+{% endhighlight %}
+</div>
 
-```scala
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
 class IncrementMapFunction extends MapFunction[Long, Long] {
 
     override def map(record: Long): Long = {
         record + 1
     }
 }
-```
-
-
+{% endhighlight %}
+</div>
+</div>
 
 It is very easy to unit test such a function with your favorite testing framework by passing suitable arguments and verifying the output.
 
-```java
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
 public class IncrementMapFunctionTest {
 
     @Test
@@ -44,9 +78,11 @@ public class IncrementMapFunctionTest {
         assertEquals(3L, incrementer.map(2L));
     }
 }
-```
+{% endhighlight %}
+</div>
 
-```scala
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
 class IncrementMapFunctionTest extends FlatSpec with Matchers {
 
     "IncrementMapFunction" should "increment values" in {
@@ -57,12 +93,15 @@ class IncrementMapFunctionTest extends FlatSpec with Matchers {
         incremeter.map(2) should be (3)
     }
 }
-```
-
+{% endhighlight %}
+</div>
+</div>
 
 Similarly, a user-defined function which uses an `org.apache.flink.util.Collector` (e.g. a `FlatMapFunction` or `ProcessFunction`) can be easily tested by providing a mock object instead of a real collector.  A `FlatMapFunction` with the same functionality as the `IncrementMapFunction` could be unit tested as follows.
 
-```java
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
 public class IncrementFlatMapFunctionTest {
 
     @Test
@@ -79,9 +118,11 @@ public class IncrementFlatMapFunctionTest {
         Mockito.verify(collector, times(1)).collect(3L);
     }
 }
-```
+{% endhighlight %}
+</div>
 
-```scala
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
 class IncrementFlatMapFunctionTest extends FlatSpec with MockFactory {
 
     "IncrementFlatMapFunction" should "increment values" in {
@@ -97,7 +138,9 @@ class IncrementFlatMapFunctionTest extends FlatSpec with MockFactory {
       flattenFunction.flatMap(2, collector)
   }
 }
-```
+{% endhighlight %}
+</div>
+</div>
 
 ### Unit Testing Stateful or Timely UDFs & Custom Operators
 
@@ -111,32 +154,35 @@ For this Flink comes with a collection of so called test harnesses, which can be
 
 To use the test harnesses a set of additional dependencies (test scoped) is needed.
 
-```xml
+{% highlight xml %}
 <dependency>
   <groupId>org.apache.flink</groupId>
-  <artifactId>flink-test-utils_2.11</artifactId>
-  <version>1.10.0</version>
+  <artifactId>flink-test-utils{{ site.scala_version_suffix }}</artifactId>
+  <version>{{site.version }}</version>
   <scope>test</scope>
 </dependency>
 <dependency>
   <groupId>org.apache.flink</groupId>
-  <artifactId>flink-runtime_2.11</artifactId>
-  <version>1.10.0</version>
-  <scope>test</scope>
-  <classifier>tests</classifier>
-</dependency>
-<dependency>
-  <groupId>org.apache.flink</groupId>
-  <artifactId>flink-streaming-java_2.11</artifactId>
-  <version>1.10.0</version>
+  <artifactId>flink-runtime{{ site.scala_version_suffix }}</artifactId>
+  <version>{{site.version }}</version>
   <scope>test</scope>
   <classifier>tests</classifier>
 </dependency>
-```
+<dependency>
+  <groupId>org.apache.flink</groupId>
+  <artifactId>flink-streaming-java{{ site.scala_version_suffix }}</artifactId>
+  <version>{{site.version }}</version>
+  <scope>test</scope>
+  <classifier>tests</classifier>
+</dependency>
+{% endhighlight %}
 
 Now, the test harnesses can be used to push records and watermarks into your user-defined functions or custom operators, control processing time and finally assert on the output of the operator (including side outputs).
 
-```java
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
+
 public class StatefulFlatMapTest {
     private OneInputStreamOperatorTestHarness<Long, Long> testHarness;
     private StatefulFlatMap statefulFlatMapFunction;
@@ -176,8 +222,12 @@ public class StatefulFlatMapTest {
         //assertThat(testHarness.getSideOutput(new OutputTag<>("invalidRecords")), hasSize(0))
     }
 }
-```
-```scala
+
+{% endhighlight %}
+</div>
+
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
 class StatefulFlatMapFunctionTest extends FlatSpec with Matchers with BeforeAndAfter {
 
   private var testHarness: OneInputStreamOperatorTestHarness[Long, Long] = null
@@ -216,11 +266,16 @@ class StatefulFlatMapFunctionTest extends FlatSpec with Matchers with BeforeAndA
     //testHarness.getSideOutput(new OutputTag[Int]("invalidRecords")) should have size 0
   }
 }
-```
+{% endhighlight %}
+</div>
+</div>
 
 `KeyedOneInputStreamOperatorTestHarness` and `KeyedTwoInputStreamOperatorTestHarness` are instantiated by additionally providing a `KeySelector` including `TypeInformation` for the class of the key.
 
-```java
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
+
 public class StatefulFlatMapFunctionTest {
     private OneInputStreamOperatorTestHarness<String, Long, Long> testHarness;
     private StatefulFlatMap statefulFlatMapFunction;
@@ -241,9 +296,12 @@ public class StatefulFlatMapFunctionTest {
     //tests
 
 }
-```
 
-```scala
+{% endhighlight %}
+</div>
+
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
 class StatefulFlatMapTest extends FlatSpec with Matchers with BeforeAndAfter {
 
   private var testHarness: OneInputStreamOperatorTestHarness[String, Long, Long] = null
@@ -263,26 +321,26 @@ class StatefulFlatMapTest extends FlatSpec with Matchers with BeforeAndAfter {
   //tests
 
 }
-```
+{% endhighlight %}
+</div>
+</div>
 
 Many more examples for the usage of these test harnesses can be found in the Flink code base, e.g.:
 
 * `org.apache.flink.streaming.runtime.operators.windowing.WindowOperatorTest` is a good example for testing operators and user-defined functions, which depend on processing or event time.
 * `org.apache.flink.streaming.api.functions.sink.filesystem.LocalStreamingFileSinkTest` shows how to test a custom sink with the `AbstractStreamOperatorTestHarness`. Specifically, it uses `AbstractStreamOperatorTestHarness.snapshot` and `AbstractStreamOperatorTestHarness.initializeState` to tests its interaction with Flink's checkpointing mechanism.
 
-```
-Be aware that `AbstractStreamOperatorTestHarness` and its derived classes are currently not part of the public API and can be subject to change.
-```
+<span class="label label-info">Note</span> Be aware that `AbstractStreamOperatorTestHarness` and its derived classes are currently not part of the public API and can be subject to change.
 
 #### Unit Testing ProcessFunction
 
 Given its importance, in addition to the previous test harnesses that can be used directly to test a `ProcessFunction`, Flink provides a test harness factory named `ProcessFunctionTestHarnesses` that allows for easier test harness instantiation. Considering this example:
 
-```
-Be aware that to use this test harness, you also need to introduce the dependencies mentioned in the last section.
-```
+<span class="label label-info">Note</span> Be aware that to use this test harness, you also need to introduce the dependencies mentioned in the last section.
 
-```java
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
 public static class PassThroughProcessFunction extends ProcessFunction<Integer, Integer> {
 
 	@Override
@@ -290,9 +348,11 @@ public static class PassThroughProcessFunction extends ProcessFunction<Integer, 
         out.collect(value);
 	}
 }
-```
+{% endhighlight %}
+</div>
 
-```scala
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
 class PassThroughProcessFunction extends ProcessFunction[Integer, Integer] {
 
     @throws[Exception]
@@ -300,11 +360,15 @@ class PassThroughProcessFunction extends ProcessFunction[Integer, Integer] {
       out.collect(value)
     }
 }
-```
+{% endhighlight %}
+</div>
+</div>
 
 It is very easy to unit test such a function with `ProcessFunctionTestHarnesses` by passing suitable arguments and verifying the output.
 
-```java
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
 public class PassThroughProcessFunctionTest {
 
     @Test
@@ -324,9 +388,11 @@ public class PassThroughProcessFunctionTest {
         assertEquals(harness.extractOutputValues(), Collections.singletonList(1));
     }
 }
-```
+{% endhighlight %}
+</div>
 
-```scala
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
 class PassThroughProcessFunctionTest extends FlatSpec with Matchers {
 
   "PassThroughProcessFunction" should "forward values" in {
@@ -344,9 +410,9 @@ class PassThroughProcessFunctionTest extends FlatSpec with Matchers {
     harness.extractOutputValues() should contain (1)
   }
 }
-```
-
-
+{% endhighlight %}
+</div>
+</div>
 
 For more examples on how to use the `ProcessFunctionTestHarnesses` in order to test the different flavours of the `ProcessFunction`, e.g. `KeyedProcessFunction`, `KeyedCoProcessFunction`, `BroadcastProcessFunction`, etc, the user is encouraged to look at the `ProcessFunctionTestHarnessesTest`.
 
@@ -359,17 +425,19 @@ called `MiniClusterWithClientResource`.
 
 To use `MiniClusterWithClientResource` one additional dependency (test scoped) is needed.
 
-```xml
+{% highlight xml %}
 <dependency>
   <groupId>org.apache.flink</groupId>
-  <artifactId>flink-test-utils_2.11</artifactId>
-  <version>1.10.0</version>
+  <artifactId>flink-test-utils{{ site.scala_version_suffix }}</artifactId>
+  <version>{{site.version }}</version>
 </dependency>
-```
+{% endhighlight %}
 
 Let us take the same simple `MapFunction` as in the previous sections.
 
-```java
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
 public class IncrementMapFunction implements MapFunction<Long, Long> {
 
     @Override
@@ -377,20 +445,26 @@ public class IncrementMapFunction implements MapFunction<Long, Long> {
         return record + 1;
     }
 }
-```
+{% endhighlight %}
+</div>
 
-```scala
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
 class IncrementMapFunction extends MapFunction[Long, Long] {
 
     override def map(record: Long): Long = {
         record + 1
     }
 }
-```
+{% endhighlight %}
+</div>
+</div>
 
 A simple pipeline using this `MapFunction` can now be tested in a local Flink cluster as follows.
 
-```java
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
 public class ExampleIntegrationTest {
 
      @ClassRule
@@ -427,17 +501,19 @@ public class ExampleIntegrationTest {
     private static class CollectSink implements SinkFunction<Long> {
 
         // must be static
-        public static final List<Long> values = new ArrayList<>();
+        public static final List<Long> values = Collections.synchronizedList(new ArrayList<>());
 
         @Override
-        public synchronized void invoke(Long value) throws Exception {
+        public void invoke(Long value) throws Exception {
             values.add(value);
         }
     }
 }
-```
+{% endhighlight %}
+</div>
 
-```scala
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
 class StreamingJobIntegrationTest extends FlatSpec with Matchers with BeforeAndAfter {
 
   val flinkCluster = new MiniClusterWithClientResource(new MiniClusterResourceConfiguration.Builder()
@@ -480,17 +556,17 @@ class StreamingJobIntegrationTest extends FlatSpec with Matchers with BeforeAndA
 class CollectSink extends SinkFunction[Long] {
 
   override def invoke(value: Long): Unit = {
-    synchronized {
-      CollectSink.values.add(value)
-    }
+    CollectSink.values.add(value)
   }
 }
 
 object CollectSink {
     // must be static
-    val values: util.List[Long] = new util.ArrayList()
+    val values: util.List[Long] = Collections.synchronizedList(new util.ArrayList())
 }
-```
+{% endhighlight %}
+</div>
+</div>
 
 A few remarks on integration testing with `MiniClusterWithClientResource`:
 
@@ -507,3 +583,5 @@ Alternatively, you could write the data to files in a temporary directory with y
 * Prefer `@ClassRule` over `@Rule` so that multiple tests can share the same Flink cluster. Doing so saves a significant amount of time since the startup and shutdown of Flink clusters usually dominate the execution time of the actual tests.
 
 * If your pipeline contains custom state handling, you can test its correctness by enabling checkpointing and restarting the job within the mini cluster. For this, you need to trigger a failure by throwing an exception from (a test-only) user-defined function in your pipeline.
+
+{% top %}

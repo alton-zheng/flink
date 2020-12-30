@@ -1,26 +1,8 @@
----
-title: "数据类型"
-nav-parent_id: tableapi
-nav-pos: 20
----
-<!--
-Licensed to the Apache Software Foundation (ASF) under one
-or more contributor license agreements.  See the NOTICE file
-distributed with this work for additional information
-regarding copyright ownership.  The ASF licenses this file
-to you under the Apache License, Version 2.0 (the
-"License"); you may not use this file except in compliance
-with the License.  You may obtain a copy of the License at
+# 数据类型
 
-  http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing,
-software distributed under the License is distributed on an
-"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-KIND, either express or implied.  See the License for the
-specific language governing permissions and limitations
-under the License.
--->
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_0)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_0)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_0)
 
 由于历史原因，在 Flink 1.9 之前，Flink Table & SQL API 的数据类型与 Flink 的 `TypeInformation` 耦合紧密。`TypeInformation` 在 DataStream 和 DataSet API 中被使用，并且足以用来用于描述分布式环境中 JVM 对象的序列化和反序列化操作所需的全部信息。
 
@@ -28,61 +10,66 @@ under the License.
 
 从 Flink 1.9 开始，Table & SQL API 开始启用一种新的类型系统作为长期解决方案，用来保持 API 稳定性和 SQL 标准的兼容性。
 
-重新设计类型系统是一项涉及几乎所有的面向用户接口的重大工作。因此，它的引入跨越多个版本，社区的目标是在 Flink 1.10 完成这项工作。
+重新设计类型系统是一项涉及几乎所有的面向用户接口的重大工作。因此，它的引入跨越多个版本，社区的目标是在 Flink 1.12 完成这项工作。
 
 同时由于为 Table 编程添加了新的 Planner 详见（[FLINK-11439](https://issues.apache.org/jira/browse/FLINK-11439)）, 并不是每种 Planner 都支持所有的数据类型。此外,Planner 对于数据类型的精度和参数化支持也可能是不完整的。
 
-<span class="label label-danger">注意</span> 在使用数据类型之前请参阅 Planner 的兼容性表和局限性章节。
+**注意** 在使用数据类型之前请参阅 Planner 的兼容性表和局限性章节。
 
-* This will be replaced by the TOC
-{:toc}
+- 数据类型
+  - [Table API 的数据类型](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#table-api-的数据类型)
+- Planner 兼容性
+  - [旧的 Planner](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#旧的-planner)
+  - [新的 Blink Planner](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#新的-blink-planner)
+- [局限性](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#局限性)
+- 数据类型列表
+  - [字符串](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#字符串)
+  - [二进制字符串](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#二进制字符串)
+  - [精确数值](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#精确数值)
+  - [近似数值](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#近似数值)
+  - [日期和时间](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#日期和时间)
+  - [结构化的数据类型](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#结构化的数据类型)
+  - [用户自定义数据类型](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#用户自定义数据类型)
+  - [其他数据类型](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#其他数据类型)
+- [数据类型注解](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#数据类型注解)
 
-数据类型
----------
+## 数据类型
 
 *数据类型* 描述 Table 编程环境中的值的逻辑类型。它可以被用来声明操作的输入输出类型。
 
 Flink 的数据类型和 SQL 标准的 *数据类型* 术语类似，但也包含了可空属性，可以被用于标量表达式（scalar expression）的优化。
 
 数据类型的示例:
+
 - `INT`
 - `INT NOT NULL`
 - `INTERVAL DAY TO SECOND(3)`
 - `ROW<myField ARRAY<BOOLEAN>, myOtherField TIMESTAMP(3)>`
 
-全部的预定义数据类型见[下面](#数据类型列表)列表。
+全部的预定义数据类型见[下面](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#数据类型列表)列表。
 
 ### Table API 的数据类型
 
-JVM API 的用户可以在 Table API 中使用 `org.apache.flink.table.types.DataType` 的实例，以及定义连接器（Connector）、Catalog 或者用户自定义函数（User-Defined Function）。
+JVM API 的用户可以在 Table API 中、定义连接器（Connector）、Catalog 或者用户自定义函数（User-Defined Function）中使用 `org.apache.flink.table.types.DataType` 的实例。
 
 一个 `DataType` 实例有两个作用：
-- **逻辑类型的声明**，它不表达具体物理类型的存储和转换，但是定义了基于 JVM 的语言和 Table 编程环境之间的边界。
+
+- **逻辑类型的声明**，它不表达具体物理类型的存储和转换，但是定义了基于 JVM 的语言或者 Python 语言和 Table 编程环境之间的边界。
 - *可选的：* **向 Planner 提供有关数据的物理表示的提示**，这对于边界 API 很有用。
 
 对于基于 JVM 的语言，所有预定义的数据类型都在 `org.apache.flink.table.api.DataTypes` 里提供。
 
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_3)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_3)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_3)
+
 建议使用星号将全部的 API 导入到 Table 程序中以便于使用：
 
-<div class="codetabs" markdown="1">
-
-<div data-lang="Java" markdown="1">
-{% highlight java %}
+```
 import static org.apache.flink.table.api.DataTypes.*;
 
 DataType t = INTERVAL(DAY(), SECOND(3));
-{% endhighlight %}
-</div>
-
-<div data-lang="Scala" markdown="1">
-{% highlight scala %}
-import org.apache.flink.table.api.DataTypes._
-
-val t: DataType = INTERVAL(DAY(), SECOND(3));
-{% endhighlight %}
-</div>
-
-</div>
+```
 
 #### 物理提示
 
@@ -92,10 +79,7 @@ val t: DataType = INTERVAL(DAY(), SECOND(3));
 
 下面是一些如何声明桥接转换类的示例：
 
-<div class="codetabs" markdown="1">
-
-<div data-lang="Java" markdown="1">
-{% highlight java %}
+```
 // 告诉运行时不要产生或者消费 java.time.LocalDateTime 实例
 // 而是使用 java.sql.Timestamp
 DataType t = DataTypes.TIMESTAMP(3).bridgedTo(java.sql.Timestamp.class);
@@ -103,28 +87,11 @@ DataType t = DataTypes.TIMESTAMP(3).bridgedTo(java.sql.Timestamp.class);
 // 告诉运行时不要产生或者消费装箱的整数数组
 // 而是使用基本数据类型的整数数组
 DataType t = DataTypes.ARRAY(DataTypes.INT().notNull()).bridgedTo(int[].class);
-{% endhighlight %}
-</div>
+```
 
-<div data-lang="Scala" markdown="1">
-{% highlight scala %}
-// 告诉运行时不要产生或者消费 java.time.LocalDateTime 实例
-// 而是使用 java.sql.Timestamp
-val t: DataType = DataTypes.TIMESTAMP(3).bridgedTo(classOf[java.sql.Timestamp]);
+**注意** 请注意，通常只有在扩展 API 时才需要物理提示。 预定义的 Source、Sink、Function 的用户不需要定义这样的提示。在 Table 编程中（例如 `field.cast(TIMESTAMP(3).bridgedTo(Timestamp.class))`）这些提示将被忽略。
 
-// 告诉运行时不要产生或者消费装箱的整数数组 
-// 而是使用基本数据类型的整数数组
-val t: DataType = DataTypes.ARRAY(DataTypes.INT().notNull()).bridgedTo(classOf[Array[Int]]);
-{% endhighlight %}
-</div>
-
-</div>
-
-<span class="label label-danger">注意</span> 请注意，通常只有在扩展 API 时才需要物理提示。
-预定义的 Source、Sink、Function 的用户不需要定义这样的提示。在 Table 编程中（例如 `field.cast(TIMESTAMP(3).bridgedTo(Timestamp.class))`）这些提示将被忽略。
-
-Planner 兼容性
----------------------
+## Planner 兼容性
 
 正如简介里提到的，重新开发类型系统将跨越多个版本，每个数据类型的支持取决于使用的 Planner。本节旨在总结最重要的差异。
 
@@ -138,31 +105,31 @@ Flink 1.9 之前引入的旧的 Planner 主要支持类型信息（Type Informat
 
 对于 *数据类型表示* 列，该表省略了前缀 `org.apache.flink.table.api.DataTypes`。
 
-| 类型信息 | Java 表达式字符串 | 数据类型表示 | 数据类型备注 |
-|:-----------------|:-----------------------|:-------------------------|:----------------------|
-| `STRING()` | `STRING` | `STRING()` | |
-| `BOOLEAN()` | `BOOLEAN` | `BOOLEAN()` | |
-| `BYTE()` | `BYTE` | `TINYINT()` | |
-| `SHORT()` | `SHORT` | `SMALLINT()` | |
-| `INT()` | `INT` | `INT()` | |
-| `LONG()` | `LONG` | `BIGINT()` | |
-| `FLOAT()` | `FLOAT` | `FLOAT()` | |
-| `DOUBLE()` | `DOUBLE` | `DOUBLE()` | |
-| `ROW(...)` | `ROW<...>` | `ROW(...)` | |
-| `BIG_DEC()` | `DECIMAL` | [`DECIMAL()`] | 不是 1:1 的映射，因为精度和小数位被忽略，Java 的可变精度和小数位被使用。 |
-| `SQL_DATE()` | `SQL_DATE` | `DATE()`<br>`.bridgedTo(java.sql.Date.class)` | |
-| `SQL_TIME()` | `SQL_TIME` | `TIME(0)`<br>`.bridgedTo(java.sql.Time.class)` | |
-| `SQL_TIMESTAMP()` | `SQL_TIMESTAMP` | `TIMESTAMP(3)`<br>`.bridgedTo(java.sql.Timestamp.class)` | |
-| `INTERVAL_MONTHS()` | `INTERVAL_MONTHS` | `INTERVAL(MONTH())`<br>`.bridgedTo(Integer.class)` | |
-| `INTERVAL_MILLIS()` | `INTERVAL_MILLIS` | `INTERVAL(DataTypes.SECOND(3))`<br>`.bridgedTo(Long.class)` | |
-| `PRIMITIVE_ARRAY(...)` | `PRIMITIVE_ARRAY<...>` | `ARRAY(DATATYPE.notNull()`<br>`.bridgedTo(PRIMITIVE.class))` | 应用于除 `byte` 外的全部 JVM 基本数据类型。 |
-| `PRIMITIVE_ARRAY(BYTE())` | `PRIMITIVE_ARRAY<BYTE>` | `BYTES()` | |
-| `OBJECT_ARRAY(...)` | `OBJECT_ARRAY<...>` | `ARRAY(`<br>`DATATYPE.bridgedTo(OBJECT.class))` | |
-| `MULTISET(...)` | | `MULTISET(...)` | |
-| `MAP(..., ...)` | `MAP<...,...>` | `MAP(...)` | |
-| 其他通用类型 | | `RAW(...)` | |
+| 类型信息                  | Java 表达式字符串       | 数据类型表示                                              | 数据类型备注                                                 |
+| :------------------------ | :---------------------- | :-------------------------------------------------------- | :----------------------------------------------------------- |
+| `STRING()`                | `STRING`                | `STRING()`                                                |                                                              |
+| `BOOLEAN()`               | `BOOLEAN`               | `BOOLEAN()`                                               |                                                              |
+| `BYTE()`                  | `BYTE`                  | `TINYINT()`                                               |                                                              |
+| `SHORT()`                 | `SHORT`                 | `SMALLINT()`                                              |                                                              |
+| `INT()`                   | `INT`                   | `INT()`                                                   |                                                              |
+| `LONG()`                  | `LONG`                  | `BIGINT()`                                                |                                                              |
+| `FLOAT()`                 | `FLOAT`                 | `FLOAT()`                                                 |                                                              |
+| `DOUBLE()`                | `DOUBLE`                | `DOUBLE()`                                                |                                                              |
+| `ROW(...)`                | `ROW<...>`              | `ROW(...)`                                                |                                                              |
+| `BIG_DEC()`               | `DECIMAL`               | [`DECIMAL()`]                                             | 不是 1:1 的映射，因为精度和小数位被忽略，Java 的可变精度和小数位被使用。 |
+| `SQL_DATE()`              | `SQL_DATE`              | `DATE()` `.bridgedTo(java.sql.Date.class)`                |                                                              |
+| `SQL_TIME()`              | `SQL_TIME`              | `TIME(0)` `.bridgedTo(java.sql.Time.class)`               |                                                              |
+| `SQL_TIMESTAMP()`         | `SQL_TIMESTAMP`         | `TIMESTAMP(3)` `.bridgedTo(java.sql.Timestamp.class)`     |                                                              |
+| `INTERVAL_MONTHS()`       | `INTERVAL_MONTHS`       | `INTERVAL(MONTH())` `.bridgedTo(Integer.class)`           |                                                              |
+| `INTERVAL_MILLIS()`       | `INTERVAL_MILLIS`       | `INTERVAL(DataTypes.SECOND(3))` `.bridgedTo(Long.class)`  |                                                              |
+| `PRIMITIVE_ARRAY(...)`    | `PRIMITIVE_ARRAY<...>`  | `ARRAY(DATATYPE.notNull()` `.bridgedTo(PRIMITIVE.class))` | 应用于除 `byte` 外的全部 JVM 基本数据类型。                  |
+| `PRIMITIVE_ARRAY(BYTE())` | `PRIMITIVE_ARRAY<BYTE>` | `BYTES()`                                                 |                                                              |
+| `OBJECT_ARRAY(...)`       | `OBJECT_ARRAY<...>`     | `ARRAY(` `DATATYPE.bridgedTo(OBJECT.class))`              |                                                              |
+| `MULTISET(...)`           |                         | `MULTISET(...)`                                           |                                                              |
+| `MAP(..., ...)`           | `MAP<...,...>`          | `MAP(...)`                                                |                                                              |
+| 其他通用类型              |                         | `RAW(...)`                                                |                                                              |
 
-<span class="label label-danger">注意</span> 如果对于新的类型系统有任何疑问，用户可以随时切换到 `org.apache.flink.table.api.Types` 中定义的 type information。
+**注意** 如果对于新的类型系统有任何疑问，用户可以随时切换到 `org.apache.flink.table.api.Types` 中定义的 type information。
 
 ### 新的 Blink Planner
 
@@ -170,42 +137,43 @@ Flink 1.9 之前引入的旧的 Planner 主要支持类型信息（Type Informat
 
 支持以下数据类型：
 
-| 数据类型 | 数据类型的备注 |
-|:----------|:----------------------|
-| `STRING` | `CHAR` 和 `VARCHAR` 暂不支持。 |
-| `BOOLEAN` | |
-| `BYTES` | `BINARY` 和 `VARBINARY` 暂不支持。 |
-| `DECIMAL` | 支持固定精度和小数位数。 |
-| `TINYINT` | |
-| `SMALLINT` | |
-| `INTEGER` | |
-| `BIGINT` | |
-| `FLOAT` | |
-| `DOUBLE` | |
-| `DATE` | |
-| `TIME` | 支持的精度仅为 `0`。 |
-| `TIMESTAMP` | 支持的精度仅为 `3`。 |
-| `TIMESTAMP WITH LOCAL TIME ZONE` | 支持的精度仅为 `3`。 |
-| `INTERVAL` | 仅支持 `MONTH` 和 `SECOND(3)` 区间。 |
-| `ARRAY` | |
-| `MULTISET` | |
-| `MAP` | |
-| `ROW` | |
-| `RAW` | |
+| 数据类型                         | 数据类型的备注                       |
+| :------------------------------- | :----------------------------------- |
+| `CHAR`                           |                                      |
+| `VARCHAR`                        |                                      |
+| `STRING`                         |                                      |
+| `BOOLEAN`                        |                                      |
+| `BYTES`                          | `BINARY` 和 `VARBINARY` 暂不支持。   |
+| `DECIMAL`                        | 支持固定精度和小数位数。             |
+| `TINYINT`                        |                                      |
+| `SMALLINT`                       |                                      |
+| `INTEGER`                        |                                      |
+| `BIGINT`                         |                                      |
+| `FLOAT`                          |                                      |
+| `DOUBLE`                         |                                      |
+| `DATE`                           |                                      |
+| `TIME`                           | 支持的精度仅为 `0`。                 |
+| `TIMESTAMP`                      |                                      |
+| `TIMESTAMP WITH LOCAL TIME ZONE` |                                      |
+| `INTERVAL`                       | 仅支持 `MONTH` 和 `SECOND(3)` 区间。 |
+| `ARRAY`                          |                                      |
+| `MULTISET`                       |                                      |
+| `MAP`                            |                                      |
+| `ROW`                            |                                      |
+| `RAW`                            |                                      |
+| structured types                 | 暂只能在用户自定义函数里使用。       |
 
-局限性
------------
+## 局限性
 
-**Java 表达式字符串**：Table API 中的 Java 表达式字符串，例如 `table.select("field.cast(STRING)")`，尚未被更新到新的类型系统中，使用[旧的 Planner 章节](#旧的-planner)中声明的字符串来表示。
+**Java 表达式字符串**：Table API 中的 Java 表达式字符串，例如 `table.select("field.cast(STRING)")`，尚未被更新到新的类型系统中，使用[旧的 Planner 章节](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#旧的-planner)中声明的字符串来表示。
 
-**连接器描述符和 SQL 客户端**：描述符字符串的表示形式尚未更新到新的类型系统。使用在[连接到外部系统章节](./connect.html#type-strings)中声明的字符串表示。
+**用户自定义函数**：用户自定义聚合函数尚不能声明数据类型，标量函数和表函数充分支持数据类型。
 
-**用户自定义函数**：用户自定义函数尚不能声明数据类型。
+## 数据类型列表
 
-数据类型列表
-------------------
+本节列出了所有预定义的数据类型。
 
-本节列出了所有预定义的数据类型。对于基于 JVM 的 Table API，这些类型也可以从 `org.apache.flink.table.api.DataTypes` 中找到。
+对于基于 JVM 的 Table API，这些类型也可以从 `org.apache.flink.table.api.DataTypes` 中找到。
 
 ### 字符串
 
@@ -215,31 +183,17 @@ Flink 1.9 之前引入的旧的 Planner 主要支持类型信息（Type Informat
 
 **声明**
 
-<div class="codetabs" markdown="1">
+- [**SQL**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_SQL_12)
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_12)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_12)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_12)
 
-<div data-lang="SQL" markdown="1">
-{% highlight text %}
+```
 CHAR
 CHAR(n)
-{% endhighlight %}
-</div>
-
-<div data-lang="Java/Scala" markdown="1">
-{% highlight java %}
-DataTypes.CHAR(n)
-{% endhighlight %}
-</div>
-
-</div>
+```
 
 此类型用 `CHAR(n)` 声明，其中 `n` 表示字符数量。`n` 的值必须在 `1` 和 `2,147,483,647` 之间（含边界值）。如果未指定长度，`n` 等于 `1`。
-
-**JVM 类型**
-
-| Java 类型          | 输入 | 输出 | 备注                 |
-|:-------------------|:-----:|:------:|:------------------------|
-|`java.lang.String`  | X     | X      | *缺省*               |
-|`byte[]`            | X     | X      | 假设使用 UTF-8 编码。 |
 
 #### `VARCHAR` / `STRING`
 
@@ -247,37 +201,21 @@ DataTypes.CHAR(n)
 
 **声明**
 
-<div class="codetabs" markdown="1">
+- [**SQL**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_SQL_14)
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_14)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_14)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_14)
 
-<div data-lang="SQL" markdown="1">
-{% highlight text %}
+```
 VARCHAR
 VARCHAR(n)
 
 STRING
-{% endhighlight %}
-</div>
-
-<div data-lang="Java/Scala" markdown="1">
-{% highlight java %}
-DataTypes.VARCHAR(n)
-
-DataTypes.STRING()
-{% endhighlight %}
-</div>
-
-</div>
+```
 
 此类型用 `VARCHAR(n)` 声明，其中 `n` 表示最大的字符数量。`n` 的值必须在 `1` 和 `2,147,483,647` 之间（含边界值）。如果未指定长度，`n` 等于 `1`。
 
 `STRING` 等价于 `VARCHAR(2147483647)`.
-
-**JVM 类型**
-
-| Java 类型          | 输入 | 输出 | 备注                 |
-|:-------------------|:-----:|:------:|:------------------------|
-|`java.lang.String`  | X     | X      | *缺省*               |
-|`byte[]`            | X     | X      | 假设使用 UTF-8 编码。 |
 
 ### 二进制字符串
 
@@ -287,30 +225,17 @@ DataTypes.STRING()
 
 **声明**
 
-<div class="codetabs" markdown="1">
+- [**SQL**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_SQL_15)
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_15)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_15)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_15)
 
-<div data-lang="SQL" markdown="1">
-{% highlight text %}
+```
 BINARY
 BINARY(n)
-{% endhighlight %}
-</div>
-
-<div data-lang="Java/Scala" markdown="1">
-{% highlight java %}
-DataTypes.BINARY(n)
-{% endhighlight %}
-</div>
-
-</div>
+```
 
 此类型用 `BINARY(n)` 声明，其中 `n` 是字节数量。`n` 的值必须在 `1` 和 `2,147,483,647` 之间（含边界值）。如果未指定长度，`n` 等于 `1`。
-
-**JVM 类型**
-
-| Java 类型          | 输入 | 输出 | 备注                 |
-|:-------------------|:-----:|:------:|:------------------------|
-|`byte[]`            | X     | X      | *缺省*               |
 
 #### `VARBINARY` / `BYTES`
 
@@ -318,36 +243,21 @@ DataTypes.BINARY(n)
 
 **声明**
 
-<div class="codetabs" markdown="1">
+- [**SQL**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_SQL_17)
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_17)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_17)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_17)
 
-<div data-lang="SQL" markdown="1">
-{% highlight text %}
+```
 VARBINARY
 VARBINARY(n)
 
 BYTES
-{% endhighlight %}
-</div>
-
-<div data-lang="Java/Scala" markdown="1">
-{% highlight java %}
-DataTypes.VARBINARY(n)
-
-DataTypes.BYTES()
-{% endhighlight %}
-</div>
-
-</div>
+```
 
 此类型用 `VARBINARY(n)` 声明，其中 `n` 是最大的字节数量。`n` 的值必须在 `1` 和 `2,147,483,647` 之间（含边界值）。如果未指定长度，`n` 等于 `1`。
 
 `BYTES` 等价于 `VARBINARY(2147483647)`。
-
-**JVM 类型**
-
-| Java 类型          | 输入 | 输出 | 备注                 |
-|:-------------------|:-----:|:------:|:------------------------|
-|`byte[]`            | X     | X      | *缺省*               |
 
 ### 精确数值
 
@@ -357,10 +267,12 @@ DataTypes.BYTES()
 
 **声明**
 
-<div class="codetabs" markdown="1">
+- [**SQL**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_SQL_18)
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_18)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_18)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_18)
 
-<div data-lang="SQL" markdown="1">
-{% highlight text %}
+```
 DECIMAL
 DECIMAL(p)
 DECIMAL(p, s)
@@ -372,26 +284,11 @@ DEC(p, s)
 NUMERIC
 NUMERIC(p)
 NUMERIC(p, s)
-{% endhighlight %}
-</div>
-
-<div data-lang="Java/Scala" markdown="1">
-{% highlight java %}
-DataTypes.DECIMAL(p, s)
-{% endhighlight %}
-</div>
-
-</div>
+```
 
 此类型用 `DECIMAL(p, s)` 声明，其中 `p` 是数字的位数（*精度*），`s` 是数字中小数点右边的位数（*尾数*）。`p` 的值必须介于 `1` 和 `38` 之间（含边界值）。`s` 的值必须介于 `0` 和 `p` 之间（含边界值）。其中 `p` 的缺省值是 `10`，`s` 的缺省值是 `0`。
 
 `NUMERIC(p, s)` 和 `DEC(p, s)` 都等价于这个类型。
-
-**JVM 类型**
-
-| Java 类型             | 输入 | 输出 | 备注                 |
-|:----------------------|:-----:|:------:|:------------------------|
-|`java.math.BigDecimal` | X     | X      | *缺省*               |
 
 #### `TINYINT`
 
@@ -399,28 +296,14 @@ DataTypes.DECIMAL(p, s)
 
 **声明**
 
-<div class="codetabs" markdown="1">
+- [**SQL**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_SQL_19)
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_19)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_19)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_19)
 
-<div data-lang="SQL" markdown="1">
-{% highlight text %}
+```
 TINYINT
-{% endhighlight %}
-</div>
-
-<div data-lang="Java/Scala" markdown="1">
-{% highlight java %}
-DataTypes.TINYINT()
-{% endhighlight %}
-</div>
-
-</div>
-
-**JVM 类型**
-
-| Java 类型          | 输入 | 输出 | 备注                                      |
-|:-------------------|:-----:|:------:|:---------------------------------------------|
-|`java.lang.Byte`    | X     | X      | *缺省*                                    |
-|`byte`              | X     | (X)    | 仅当类型不可为空时才输出。 |
+```
 
 #### `SMALLINT`
 
@@ -428,28 +311,14 @@ DataTypes.TINYINT()
 
 **声明**
 
-<div class="codetabs" markdown="1">
+- [**SQL**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_SQL_20)
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_20)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_20)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_20)
 
-<div data-lang="SQL" markdown="1">
-{% highlight text %}
+```
 SMALLINT
-{% endhighlight %}
-</div>
-
-<div data-lang="Java/Scala" markdown="1">
-{% highlight java %}
-DataTypes.SMALLINT()
-{% endhighlight %}
-</div>
-
-</div>
-
-**JVM 类型**
-
-| Java 类型          | 输入 | 输出 | 备注                                      |
-|:-------------------|:-----:|:------:|:---------------------------------------------|
-|`java.lang.Short`   | X     | X      | *缺省*                                    |
-|`short`             | X     | (X)    | 仅当类型不可为空时才输出。 |
+```
 
 #### `INT`
 
@@ -457,32 +326,18 @@ DataTypes.SMALLINT()
 
 **声明**
 
-<div class="codetabs" markdown="1">
+- [**SQL**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_SQL_21)
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_21)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_21)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_21)
 
-<div data-lang="SQL" markdown="1">
-{% highlight text %}
+```
 INT
 
 INTEGER
-{% endhighlight %}
-</div>
-
-<div data-lang="Java/Scala" markdown="1">
-{% highlight java %}
-DataTypes.INT()
-{% endhighlight %}
-</div>
-
-</div>
+```
 
 `INTEGER` 等价于此类型。
-
-**JVM 类型**
-
-| Java 类型          | 输入 | 输出 | 备注                                      |
-|:-------------------|:-----:|:------:|:---------------------------------------------|
-|`java.lang.Integer` | X     | X      | *缺省*                                    |
-|`int`               | X     | (X)    | 仅当类型不可为空时才输出。 |
 
 #### `BIGINT`
 
@@ -490,28 +345,14 @@ DataTypes.INT()
 
 **声明**
 
-<div class="codetabs" markdown="1">
+- [**SQL**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_SQL_22)
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_22)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_22)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_22)
 
-<div data-lang="SQL" markdown="1">
-{% highlight text %}
+```
 BIGINT
-{% endhighlight %}
-</div>
-
-<div data-lang="Java/Scala" markdown="1">
-{% highlight java %}
-DataTypes.BIGINT()
-{% endhighlight %}
-</div>
-
-</div>
-
-**JVM 类型**
-
-| Java 类型          | 输入 | 输出 | 备注                                      |
-|:-------------------|:-----:|:------:|:---------------------------------------------|
-|`java.lang.Long`    | X     | X      | *缺省*                                    |
-|`long`              | X     | (X)    | 仅当类型不可为空时才输出。 |
+```
 
 ### 近似数值
 
@@ -523,28 +364,14 @@ DataTypes.BIGINT()
 
 **声明**
 
-<div class="codetabs" markdown="1">
+- [**SQL**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_SQL_23)
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_23)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_23)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_23)
 
-<div data-lang="SQL" markdown="1">
-{% highlight text %}
+```
 FLOAT
-{% endhighlight %}
-</div>
-
-<div data-lang="Java/Scala" markdown="1">
-{% highlight java %}
-DataTypes.FLOAT()
-{% endhighlight %}
-</div>
-
-</div>
-
-**JVM 类型**
-
-| Java 类型          | 输入 | 输出 | 备注                                      |
-|:-------------------|:-----:|:------:|:---------------------------------------------|
-|`java.lang.Float`   | X     | X      | *缺省*                                    |
-|`float`             | X     | (X)    | 仅当类型不可为空时才输出。 |
+```
 
 #### `DOUBLE`
 
@@ -552,32 +379,18 @@ DataTypes.FLOAT()
 
 **声明**
 
-<div class="codetabs" markdown="1">
+- [**SQL**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_SQL_24)
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_24)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_24)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_24)
 
-<div data-lang="SQL" markdown="1">
-{% highlight text %}
+```
 DOUBLE
 
 DOUBLE PRECISION
-{% endhighlight %}
-</div>
-
-<div data-lang="Java/Scala" markdown="1">
-{% highlight java %}
-DataTypes.DOUBLE()
-{% endhighlight %}
-</div>
-
-</div>
+```
 
 `DOUBLE PRECISION` 等价于此类型。
-
-**JVM 类型**
-
-| Java 类型          | 输入 | 输出 | 备注                                      |
-|:-------------------|:-----:|:------:|:---------------------------------------------|
-|`java.lang.Double`  | X     | X      | *缺省*                                    |
-|`double`            | X     | (X)    | 仅当类型不可为空时才输出。 |
 
 ### 日期和时间
 
@@ -589,30 +402,14 @@ DataTypes.DOUBLE()
 
 **声明**
 
-<div class="codetabs" markdown="1">
+- [**SQL**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_SQL_25)
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_25)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_25)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_25)
 
-<div data-lang="SQL" markdown="1">
-{% highlight text %}
+```
 DATE
-{% endhighlight %}
-</div>
-
-<div data-lang="Java/Scala" markdown="1">
-{% highlight java %}
-DataTypes.DATE()
-{% endhighlight %}
-</div>
-
-</div>
-
-**JVM 类型**
-
-| Java 类型            | 输入 | 输出 | 备注                                      |
-|:---------------------|:-----:|:------:|:---------------------------------------------|
-|`java.time.LocalDate` | X     | X      | *缺省*                                    |
-|`java.sql.Date`       | X     | X      |                                              |
-|`java.lang.Integer`   | X     | X      | 描述从 Epoch 算起的天数。    |
-|`int`                 | X     | (X)    | 描述从 Epoch 算起的天数。<br>仅当类型不可为空时才输出。 |
+```
 
 #### `TIME`
 
@@ -622,35 +419,17 @@ DataTypes.DATE()
 
 **声明**
 
-<div class="codetabs" markdown="1">
+- [**SQL**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_SQL_27)
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_27)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_27)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_27)
 
-<div data-lang="SQL" markdown="1">
-{% highlight text %}
+```
 TIME
 TIME(p)
-{% endhighlight %}
-</div>
-
-<div data-lang="Java/Scala" markdown="1">
-{% highlight java %}
-DataTypes.TIME(p)
-{% endhighlight %}
-</div>
-
-</div>
+```
 
 此类型用 `TIME(p)` 声明，其中 `p` 是秒的小数部分的位数（*精度*）。`p` 的值必须介于 `0` 和 `9` 之间（含边界值）。如果未指定精度，则 `p` 等于 `0`。
-
-**JVM 类型**
-
-| Java 类型            |输入 |输出 |备注                                             |
-|:---------------------|:-----:|:------:|:----------------------------------------------------|
-|`java.time.LocalTime` | X     | X      | *缺省*                                           |
-|`java.sql.Time`       | X     | X      |                                                     |
-|`java.lang.Integer`   | X     | X      | 描述自当天以来的毫秒数。    |
-|`int`                 | X     | (X)    | 描述自当天以来的毫秒数。<br>仅当类型不可为空时才输出。 |
-|`java.lang.Long`      | X     | X      | 描述自当天以来的纳秒数。     |
-|`long`                | X     | (X)    | 描述自当天以来的纳秒数。<br>仅当类型不可为空时才输出。 |
 
 #### `TIMESTAMP`
 
@@ -662,41 +441,26 @@ DataTypes.TIME(p)
 
 **声明**
 
-<div class="codetabs" markdown="1">
+- [**SQL**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_SQL_29)
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_29)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_29)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_29)
 
-<div data-lang="SQL" markdown="1">
-{% highlight text %}
+```
 TIMESTAMP
 TIMESTAMP(p)
 
 TIMESTAMP WITHOUT TIME ZONE
 TIMESTAMP(p) WITHOUT TIME ZONE
-{% endhighlight %}
-</div>
-
-<div data-lang="Java/Scala" markdown="1">
-{% highlight java %}
-DataTypes.TIMESTAMP(p)
-{% endhighlight %}
-</div>
-
-</div>
+```
 
 此类型用 `TIMESTAMP(p)` 声明，其中 `p` 是秒的小数部分的位数（*精度*）。`p` 的值必须介于 `0` 和 `9` 之间（含边界值）。如果未指定精度，则 `p` 等于 `6`。
 
 `TIMESTAMP(p) WITHOUT TIME ZONE` 等价于此类型。
 
-**JVM 类型**
-
-| Java 类型                | 输入 | 输出 | 备注                                             |
-|:-------------------------|:-----:|:------:|:----------------------------------------------------|
-|`java.time.LocalDateTime` | X     | X      | *缺省*                                           |
-|`java.sql.Timestamp`      | X     | X      |                                                     |
-
 #### `TIMESTAMP WITH TIME ZONE`
 
-*带有*时区的时间戳数据类型，由 `year-month-day hour:minute:second[.fractional] zone` 组成，精度达到纳秒，范围从 `0000-01-01 00:00:00.000000000 +14:59` 到 
-`9999-12-31 23:59:59.999999999 -14:59`。
+*带有*时区的时间戳数据类型，由 `year-month-day hour:minute:second[.fractional] zone` 组成，精度达到纳秒，范围从 `0000-01-01 00:00:00.000000000 +14:59` 到 `9999-12-31 23:59:59.999999999 -14:59`。
 
 与 SQL 标准相比，不支持闰秒（`23:59:60` 和 `23:59:61`），语义上更接近于 `java.time.OffsetDateTime`。
 
@@ -704,36 +468,21 @@ DataTypes.TIMESTAMP(p)
 
 **声明**
 
-<div class="codetabs" markdown="1">
+- [**SQL**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_SQL_31)
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_31)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_31)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_31)
 
-<div data-lang="SQL" markdown="1">
-{% highlight text %}
+```
 TIMESTAMP WITH TIME ZONE
 TIMESTAMP(p) WITH TIME ZONE
-{% endhighlight %}
-</div>
-
-<div data-lang="Java/Scala" markdown="1">
-{% highlight java %}
-DataTypes.TIMESTAMP_WITH_TIME_ZONE(p)
-{% endhighlight %}
-</div>
-
-</div>
+```
 
 此类型用 `TIMESTAMP(p) WITH TIME ZONE` 声明，其中 `p` 是秒的小数部分的位数（*精度*）。`p` 的值必须介于 `0` 和 `9` 之间（含边界值）。如果未指定精度，则 `p` 等于 `6`。
 
-**JVM 类型**
-
-| Java 类型                 | 输入 | 输出 | 备注              |
-|:--------------------------|:-----:|:------:|:---------------------|
-|`java.time.OffsetDateTime` | X     | X      | *缺省*            |
-|`java.time.ZonedDateTime`  | X     |        | 忽略时区 ID。 |
-
 #### `TIMESTAMP WITH LOCAL TIME ZONE`
 
-*带有本地*时区的时间戳数据类型，由 `year-month-day hour:minute:second[.fractional] zone` 组成，精度达到纳秒，范围从 `0000-01-01 00:00:00.000000000 +14:59` 到 
-`9999-12-31 23:59:59.999999999 -14:59`。
+*带有本地*时区的时间戳数据类型，由 `year-month-day hour:minute:second[.fractional] zone` 组成，精度达到纳秒，范围从 `0000-01-01 00:00:00.000000000 +14:59` 到 `9999-12-31 23:59:59.999999999 -14:59`。
 
 不支持闰秒（`23:59:60` 和 `23:59:61`），语义上更接近于 `java.time.OffsetDateTime`。
 
@@ -743,40 +492,24 @@ DataTypes.TIMESTAMP_WITH_TIME_ZONE(p)
 
 **声明**
 
-<div class="codetabs" markdown="1">
+- [**SQL**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_SQL_34)
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_34)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_34)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_34)
 
-<div data-lang="SQL" markdown="1">
-{% highlight text %}
+```
 TIMESTAMP WITH LOCAL TIME ZONE
 TIMESTAMP(p) WITH LOCAL TIME ZONE
-{% endhighlight %}
-</div>
-
-<div data-lang="Java/Scala" markdown="1">
-{% highlight java %}
-DataTypes.TIMESTAMP_WITH_LOCAL_TIME_ZONE(p)
-{% endhighlight %}
-</div>
-
-</div>
+```
 
 此类型用 `TIMESTAMP(p) WITH LOCAL TIME ZONE` 声明，其中 `p` 是秒的小数部分的位数（*精度*）。`p` 的值必须介于 `0` 和 `9` 之间（含边界值）。如果未指定精度，则 `p` 等于 `6`。
-
-**JVM 类型**
-
-| Java 类型          |输入 |输出 |备注                                           |
-|:-------------------|:-----:|:------:|:--------------------------------------------------|
-|`java.time.Instant` | X     | X      | *缺省*                                         |
-|`java.lang.Integer` | X     | X      | 描述从 Epoch 算起的秒数。      |
-|`int`               | X     | (X)    | 描述从 Epoch 算起的秒数。<br>仅当类型不可为空时才输出。 |
-|`java.lang.Long`    | X     | X      | 描述从 Epoch 算起的毫秒数。 |
-|`long`              | X     | (X)    | 描述从 Epoch 算起的毫秒数。<br>仅当类型不可为空时才输出。 |
 
 #### `INTERVAL YEAR TO MONTH`
 
 一组 Year-Month Interval 数据类型。
 
 此类型必被参数化为以下情况中的一种：
+
 - Year 时间间隔、
 - Year-Month 时间间隔、
 - Month 时间间隔。
@@ -787,43 +520,26 @@ Year-Month Interval 由 `+years-months` 组成，其范围从 `-9999-11` 到 `+9
 
 **声明**
 
-<div class="codetabs" markdown="1">
+- [**SQL**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_SQL_35)
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_35)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_35)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_35)
 
-<div data-lang="SQL" markdown="1">
-{% highlight text %}
+```
 INTERVAL YEAR
 INTERVAL YEAR(p)
 INTERVAL YEAR(p) TO MONTH
 INTERVAL MONTH
-{% endhighlight %}
-</div>
-
-<div data-lang="Java/Scala" markdown="1">
-{% highlight java %}
-DataTypes.INTERVAL(DataTypes.YEAR())
-DataTypes.INTERVAL(DataTypes.YEAR(p))
-DataTypes.INTERVAL(DataTypes.YEAR(p), DataTypes.MONTH())
-DataTypes.INTERVAL(DataTypes.MONTH())
-{% endhighlight %}
-</div>
-
-</div>
+```
 
 可以使用以上组合来声明类型，其中 `p` 是年数（*年精度*）的位数。`p` 的值必须介于 `1` 和 `4` 之间（含边界值）。如果未指定年精度，`p` 则等于 `2`。
 
-**JVM 类型**
-
-| Java 类型          | 输入 | 输出 | 备注                            |
-|:-------------------|:-----:|:------:|:-----------------------------------|
-|`java.time.Period`  | X     | X      | 忽略 `days` 部分。 *缺省* |
-|`java.lang.Integer` | X     | X      | 描述月的数量。    |
-|`int`               | X     | (X)    | 描述月的数量。<br>仅当类型不可为空时才输出。 |
-
-#### `INTERVAL DAY TO MONTH`
+#### `INTERVAL DAY TO SECOND`
 
 一组 Day-Time Interval 数据类型。
 
 此类型达到纳秒精度，必被参数化为以下情况中的一种：
+
 - Day 时间间隔、
 - Day-Hour 时间间隔、
 - Day-Minute 时间间隔、
@@ -841,10 +557,12 @@ Day-Time 时间间隔由 `+days hours:months:seconds.fractional` 组成，其范
 
 **声明**
 
-<div class="codetabs" markdown="1">
+- [**SQL**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_SQL_36)
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_36)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_36)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_36)
 
-<div data-lang="SQL" markdown="1">
-{% highlight text %}
+```
 INTERVAL DAY
 INTERVAL DAY(p1)
 INTERVAL DAY(p1) TO HOUR
@@ -857,37 +575,9 @@ INTERVAL MINUTE
 INTERVAL MINUTE TO SECOND(p2)
 INTERVAL SECOND
 INTERVAL SECOND(p2)
-{% endhighlight %}
-</div>
-
-<div data-lang="Java/Scala" markdown="1">
-{% highlight java %}
-DataTypes.INTERVAL(DataTypes.DAY())
-DataTypes.INTERVAL(DataTypes.DAY(p1))
-DataTypes.INTERVAL(DataTypes.DAY(p1), DataTypes.HOUR())
-DataTypes.INTERVAL(DataTypes.DAY(p1), DataTypes.MINUTE())
-DataTypes.INTERVAL(DataTypes.DAY(p1), DataTypes.SECOND(p2))
-DataTypes.INTERVAL(DataTypes.HOUR())
-DataTypes.INTERVAL(DataTypes.HOUR(), DataTypes.MINUTE())
-DataTypes.INTERVAL(DataTypes.HOUR(), DataTypes.SECOND(p2))
-DataTypes.INTERVAL(DataTypes.MINUTE())
-DataTypes.INTERVAL(DataTypes.MINUTE(), DataTypes.SECOND(p2))
-DataTypes.INTERVAL(DataTypes.SECOND())
-DataTypes.INTERVAL(DataTypes.SECOND(p2))
-{% endhighlight %}
-</div>
-
-</div>
+```
 
 可以使用以上组合来声明类型，其中 `p1` 是天数（*天精度*）的位数，`p2` 是秒的小数部分的位数（*小数精度*）。`p1` 的值必须介于 `1` 和之间 `6`（含边界值），`p2` 的值必须介于 `0` 和之间 `9`（含边界值）。如果 `p1` 未指定值，则缺省等于 `2`，如果 `p2` 未指定值，则缺省等于 `6`。
-
-**JVM 类型**
-
-| Java 类型           | 输入 | 输出 | 备注                               |
-|:--------------------|:-----:|:------:|:--------------------------------------|
-|`java.time.Duration` | X     | X      | *缺省*                             |
-|`java.lang.Long`     | X     | X      | 描述毫秒数。 |
-|`long`               | X     | (X)    | 描述毫秒数。<br>仅当类型不可为空时才输出。 |
 
 ### 结构化的数据类型
 
@@ -899,32 +589,19 @@ DataTypes.INTERVAL(DataTypes.SECOND(p2))
 
 **声明**
 
-<div class="codetabs" markdown="1">
+- [**SQL**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_SQL_37)
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_37)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_37)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_37)
 
-<div data-lang="SQL" markdown="1">
-{% highlight text %}
+```
 ARRAY<t>
 t ARRAY
-{% endhighlight %}
-</div>
-
-<div data-lang="Java/Scala" markdown="1">
-{% highlight java %}
-DataTypes.ARRAY(t)
-{% endhighlight %}
-</div>
-
-</div>
+```
 
 此类型用 `ARRAY<t>` 声明，其中 `t` 是所包含元素的数据类型。
 
 `t ARRAY` 接近等价于 SQL 标准。例如，`INT ARRAY` 等价于 `ARRAY<INT>`。
-
-**JVM 类型**
-
-| Java 类型 | 输入 | 输出 | 备注                           |
-|:----------|:-----:|:------:|:----------------------------------|
-|*t*`[]`    | (X)   | (X)    | 依赖于子类型。 *缺省* |
 
 #### `MAP`
 
@@ -936,30 +613,16 @@ Map 类型是 SQL 标准的扩展。
 
 **声明**
 
-<div class="codetabs" markdown="1">
+- [**SQL**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_SQL_38)
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_38)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_38)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_38)
 
-<div data-lang="SQL" markdown="1">
-{% highlight text %}
+```
 MAP<kt, vt>
-{% endhighlight %}
-</div>
-
-<div data-lang="Java/Scala" markdown="1">
-{% highlight java %}
-DataTypes.MAP(kt, vt)
-{% endhighlight %}
-</div>
-
-</div>
+```
 
 此类型用 `MAP<kt, vt>` 声明，其中 `kt` 是键的数据类型，`vt` 是值的数据类型。
-
-**JVM 类型**
-
-| Java 类型                             | 输入 | 输出 | 备注   |
-|:--------------------------------------|:-----:|:------:|:----------|
-| `java.util.Map<kt, vt>`               | X     | X      | *缺省* |
-| `java.util.Map<kt, vt>` 的*子类型* | X     |        |           |
 
 #### `MULTISET`
 
@@ -969,33 +632,19 @@ DataTypes.MAP(kt, vt)
 
 **声明**
 
-<div class="codetabs" markdown="1">
+- [**SQL**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_SQL_39)
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_39)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_39)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_39)
 
-<div data-lang="SQL" markdown="1">
-{% highlight text %}
+```
 MULTISET<t>
 t MULTISET
-{% endhighlight %}
-</div>
-
-<div data-lang="Java/Scala" markdown="1">
-{% highlight java %}
-DataTypes.MULTISET(t)
-{% endhighlight %}
-</div>
-
-</div>
+```
 
 此类型用 `MULTISET<t>` 声明，其中 `t` 是所包含元素的数据类型。
 
 `t MULTISET` 接近等价于 SQL 标准。例如，`INT MULTISET` 等价于 `MULTISET<INT>`。
-
-**JVM 类型**
-
-| Java 类型                            | 输入 | 输出 | 备注                                                  |
-|:-------------------------------------|:-----:|:------:|:---------------------------------------------------------|
-|`java.util.Map<t, java.lang.Integer>` | X     | X      | 将每个值可多重地分配给一个整数 *缺省* |
-|`java.util.Map<kt, java.lang.Integer>` 的*子类型*| X     |        | 将每个值可多重地分配给一个整数 |
 
 #### `ROW`
 
@@ -1009,36 +658,87 @@ Row 类型类似于其他非标准兼容框架中的 `STRUCT` 类型。
 
 **声明**
 
-<div class="codetabs" markdown="1">
+- [**SQL**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_SQL_40)
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_40)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_40)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_40)
 
-<div data-lang="SQL" markdown="1">
-{% highlight sql %}
+```
 ROW<n0 t0, n1 t1, ...>
 ROW<n0 t0 'd0', n1 t1 'd1', ...>
 
 ROW(n0 t0, n1 t1, ...>
 ROW(n0 t0 'd0', n1 t1 'd1', ...)
-{% endhighlight %}
-</div>
-
-<div data-lang="Java/Scala" markdown="1">
-{% highlight java %}
-DataTypes.ROW(DataTypes.FIELD(n0, t0), DataTypes.FIELD(n1, t1), ...)
-DataTypes.ROW(DataTypes.FIELD(n0, t0, d0), DataTypes.FIELD(n1, t1, d1), ...)
-{% endhighlight %}
-</div>
-
-</div>
+```
 
 此类型用 `ROW<n0 t0 'd0', n1 t1 'd1', ...>` 声明，其中 `n` 是唯一的字段名称，`t` 是字段的逻辑类型，`d` 是字段的描述。
 
 `ROW(...)` 接近等价于 SQL 标准。例如，`ROW(myField INT, myOtherField BOOLEAN)` 等价于 `ROW<myField INT, myOtherField BOOLEAN>`。
 
+### 用户自定义数据类型
+
+**注意** 还未完全支持用户自定义数据类型，当前（从 Flink 1.11 开始）它们仅可作为函数参数和返回值的未注册的结构化类型。
+
+结构化类型类似于面向对象编程语言中的对象，可包含零个、一个或多个属性，每个属性都包含一个名称和一个类型。
+
+有两种结构化类型：
+
+- 存储在 catalog 并由 *catatlog 标识符* 标识的类型（例如 `cat.db.MyType`），等价于 SQL 标准定义里的结构化类型。
+- 由 *实现类* 标识，通常以反射方式匿名定义的未注册类型（例如 `com.myorg.model.MyType`）。当写代码定义表时，这些功能很有用。它们使你能够重用现有的JVM类，而无需重复手动定义数据类型。
+
+#### 可注册的结构化类型
+
+当前尚不支持，因此无法在 catalog 里保存或在 `CREATE TABLE` DDL 语句里引用它们。
+
+#### 未注册的结构化类型
+
+可以从常规 POJOs（Plain Old Java Objects）自动反射式提取出未注册的结构化类型。
+
+结构化类型的实现类必须满足以下要求：
+
+- 可被全局访问到，即必须声明为 `public`、`static`，不能用 `abstract`；
+- 提供无参默认构造器，或可设置所有成员变量的构造器；
+- 可访问类的所有成员变量，比如使用 `public` 声明成员变量，或遵循通用代码规范写 getter 比如 `getField()`、`isField()`、`field()`；
+- 可设置类的所有成员变量，比如使用 `public` 声明成员变量，定义可设置所有成员变量的构造器，或遵循通用代码规范写 setter 比如 `setField(...)`、`field(...)`；
+- 所有成员变量都要映射到某个数据类型，比如使用反射式提取进行隐式映射，或用 `@DataTypeHint` [注解](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#data-type-annotations) 显式映射；
+- 忽略 `static` 或 `transient` 修饰的成员变量；
+
+只要字段不（递归地）指向自己，反射式提取支持字段的任意嵌套。
+
+成员变量（比如 `public int age;`）的类型必须包含在本文为每种数据类型定义的受支持的 JVM 类型列表里（例如，`java.lang.Integer` 或 `int` 对应 `INT`）。
+
+对于某些类，需要有注解才能将类映射到数据类型（例如， `@DataTypeHint("DECIMAL(10, 2)")` 为 `java.math.BigDecimal` 分配固定的精度和小数位）。
+
+**声明**
+
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_42)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_42)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_42)
+
+```
+class User {
+
+    // extract fields automatically
+    public int age;
+    public String name;
+
+    // enrich the extraction with precision information
+    public @DataTypeHint("DECIMAL(10, 2)") BigDecimal totalBalance;
+
+    // enrich the extraction with forcing using RAW types
+    public @DataTypeHint("RAW") Class<?> modelClass;
+}
+
+DataTypes.of(User.class);
+```
+
 **JVM 类型**
 
-| Java 类型                   | 输入 | 输出 | 备注                 |
-|:----------------------------|:-----:|:------:|:------------------------|
-|`org.apache.flink.types.Row` | X     | X      | *缺省*               |
+| Java 类型                             | 输入 | 输出 | 备注                                             |
+| :------------------------------------ | :--: | :--: | :----------------------------------------------- |
+| *类型*                                |  X   |  X   | 原始类或子类（用于输入）或超类（用于输出）*缺省* |
+| `org.apache.flink.types.Row`          |  X   |  X   | 代表一行数据的结构化类型。                       |
+| `org.apache.flink.table.data.RowData` |  X   |  X   | 内部数据结构。                                   |
 
 ### 其他数据类型
 
@@ -1048,28 +748,35 @@ DataTypes.ROW(DataTypes.FIELD(n0, t0, d0), DataTypes.FIELD(n1, t1, d1), ...)
 
 **声明**
 
-<div class="codetabs" markdown="1">
+- [**SQL**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_SQL_43)
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_43)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_43)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_43)
 
-<div data-lang="SQL" markdown="1">
-{% highlight text %}
+```
 BOOLEAN
-{% endhighlight %}
-</div>
+```
 
-<div data-lang="Java/Scala" markdown="1">
-{% highlight java %}
-DataTypes.BOOLEAN()
-{% endhighlight %}
-</div>
+#### `RAW`
 
-</div>
+任意序列化类型的数据类型。此类型对于 Flink Table 来讲是一个黑盒子，仅在跟外部交互时被反序列化。
 
-**JVM 类型**
+Raw 类型是 SQL 标准的扩展。
 
-| Java 类型          | 输入 | 输出 | 备注                              |
-|:-------------------|:-----:|:------:|:-------------------------------------|
-|`java.lang.Boolean` | X     | X      | *缺省*                            |
-|`boolean`           | X     | (X)    | 仅当类型不可为空时才输出。 |
+**声明**
+
+- [**SQL**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_SQL_44)
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_44)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_44)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_44)
+
+```
+RAW('class', 'snapshot')
+```
+
+此类型用 `RAW('class', 'snapshot')` 声明，其中 `class` 是原始类，`snapshot` 是 Base64 编码的序列化的 `TypeSerializerSnapshot`。通常，类型字符串不是直接声明的，而是在持久化类型时生成的。
+
+在 API 中，可以通过直接提供 `Class` + `TypeSerializer` 或通过传递 `TypeInformation` 并让框架从那里提取 `Class` + `TypeSerializer` 来声明 `RAW` 类型。
 
 #### `NULL`
 
@@ -1083,64 +790,85 @@ NULL 类型是 SQL 标准的扩展。NULL 类型除 `NULL` 值以外没有其他
 
 **声明**
 
-<div class="codetabs" markdown="1">
+- [**SQL**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_SQL_46)
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_46)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_46)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_46)
 
-<div data-lang="SQL" markdown="1">
-{% highlight text %}
+```
 NULL
-{% endhighlight %}
-</div>
+```
 
-<div data-lang="Java/Scala" markdown="1">
-{% highlight java %}
-DataTypes.NULL()
-{% endhighlight %}
-</div>
+## 数据类型注解
 
-</div>
+Flink API 经常尝试使用反射自动从类信息中提取数据类型，以避免重复的手动定义模式工作。然而以反射方式提取数据类型并不总是成功的，因为可能会丢失逻辑信息。因此，可能有必要在类或字段声明附近添加额外信息以支持提取逻辑。
 
-**JVM 类型**
+下表列出了可以隐式映射到数据类型而无需额外信息的类。
 
-| Java 类型         | 输入 | 输出 | 备注                              |
-|:------------------|:-----:|:------:|:-------------------------------------|
-|`java.lang.Object` | X     | X      | *缺省*                            |
-|*任何类型*        |       | (X)    | 任何非基本数据类型              |
+If you intend to implement classes in Scala, *it is recommended to use boxed types* (e.g. `java.lang.Integer`) instead of Scala’s primitives. Scala’s primitives (e.g. `Int` or `Double`) are compiled to JVM primitives (e.g. `int`/`double`) and result in `NOT NULL` semantics as shown in the table below. Furthermore, Scala primitives that are used in generics (e.g. `java.util.Map[Int, Double]`) are erased during compilation and lead to class information similar to `java.util.Map[java.lang.Object, java.lang.Object]`.
 
-#### `RAW`
+| 类                         | 数据类型                            |
+| :------------------------- | :---------------------------------- |
+| `java.lang.String`         | `STRING`                            |
+| `java.lang.Boolean`        | `BOOLEAN`                           |
+| `boolean`                  | `BOOLEAN NOT NULL`                  |
+| `java.lang.Byte`           | `TINYINT`                           |
+| `byte`                     | `TINYINT NOT NULL`                  |
+| `java.lang.Short`          | `SMALLINT`                          |
+| `short`                    | `SMALLINT NOT NULL`                 |
+| `java.lang.Integer`        | `INT`                               |
+| `int`                      | `INT NOT NULL`                      |
+| `java.lang.Long`           | `BIGINT`                            |
+| `long`                     | `BIGINT NOT NULL`                   |
+| `java.lang.Float`          | `FLOAT`                             |
+| `float`                    | `FLOAT NOT NULL`                    |
+| `java.lang.Double`         | `DOUBLE`                            |
+| `double`                   | `DOUBLE NOT NULL`                   |
+| `java.sql.Date`            | `DATE`                              |
+| `java.time.LocalDate`      | `DATE`                              |
+| `java.sql.Time`            | `TIME(0)`                           |
+| `java.time.LocalTime`      | `TIME(9)`                           |
+| `java.sql.Timestamp`       | `TIMESTAMP(9)`                      |
+| `java.time.LocalDateTime`  | `TIMESTAMP(9)`                      |
+| `java.time.OffsetDateTime` | `TIMESTAMP(9) WITH TIME ZONE`       |
+| `java.time.Instant`        | `TIMESTAMP(9) WITH LOCAL TIME ZONE` |
+| `java.time.Duration`       | `INVERVAL SECOND(9)`                |
+| `java.time.Period`         | `INTERVAL YEAR(4) TO MONTH`         |
+| `byte[]`                   | `BYTES`                             |
+| `T[]`                      | `ARRAY<T>`                          |
+| `java.util.Map<K, V>`      | `MAP<K, V>`                         |
+| structured type `T`        | anonymous structured type `T`       |
 
-任意序列化类型的数据类型。此类型是 Table 编程环境中的黑箱，仅在边缘反序列化。
+本文提到的其他 JVM 桥接类都需要 `@DataTypeHint` 注解。
 
-Raw 类型是 SQL 标准的扩展。
+*数据类型提示* 可以参数化或替换函数参数和返回值、结构化类或结构化类字段的默认提取逻辑，实现者可以通过声明 `@DataTypeHint` 注解来选择默认提取逻辑应修改的程度。
 
-**声明**
+`@DataTypeHint` 注解提供了一组可选的提示参数，以下示例显示了其中一些参数，可以在注解类的文档中找到更多信息。
 
-<div class="codetabs" markdown="1">
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Java_48)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Scala_48)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/types.html#tab_Python_48)
 
-<div data-lang="SQL" markdown="1">
-{% highlight text %}
-RAW('class', 'snapshot')
-{% endhighlight %}
-</div>
+```
+import org.apache.flink.table.annotation.DataTypeHint;
 
-<div data-lang="Java/Scala" markdown="1">
-{% highlight java %}
-DataTypes.RAW(class, serializer)
+class User {
 
-DataTypes.RAW(typeInfo)
-{% endhighlight %}
-</div>
+    // defines an INT data type with a default conversion class `java.lang.Integer`
+    public @DataTypeHint("INT") Object o;
 
-</div>
+    // defines a TIMESTAMP data type of millisecond precision with an explicit conversion class
+    public @DataTypeHint(value = "TIMESTAMP(3)", bridgedTo = java.sql.Timestamp.class) Object o;
 
-此类型用 `RAW('class', 'snapshot')` 声明，其中 `class` 是原始类，`snapshot` 是 Base64 编码的序列化的 `TypeSerializerSnapshot`。通常，类型字符串不是直接声明的，而是在保留类型时生成的。
+    // enrich the extraction with forcing using a RAW type
+    public @DataTypeHint("RAW") Class<?> modelClass;
 
-在 API 中，可以通过直接提供 `Class` + `TypeSerializer` 或通过传递 `TypeInformation` 并让框架从那里提取 `Class` + `TypeSerializer` 来声明 `RAW` 类型。
+    // defines that all occurrences of java.math.BigDecimal (also in nested fields) will be
+    // extracted as DECIMAL(12, 2)
+    public @DataTypeHint(defaultDecimalPrecision = 12, defaultDecimalScale = 2) AccountStatement stmt;
 
-**JVM 类型**
-
-| Java 类型         | 输入 | 输出 | 备注                              |
-|:------------------|:-----:|:------:|:-------------------------------------------|
-|*类型*            | X     | X      | 原始类或子类（用于输入）或超类（用于输出）。 *缺省* |
-|`byte[]`           |       | X      |                                      |
-
-{% top %}
+    // defines that whenever a type cannot be mapped to a data type, instead of throwing
+    // an exception, always treat it as a RAW type
+    public @DataTypeHint(allowRawGlobally = HintFlag.TRUE) ComplexModel model;
+}
+```

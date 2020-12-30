@@ -1,5 +1,5 @@
 ---
-title: "文件系统"
+title: "File Systems"
 nav-parent_id: internals
 nav-pos: 10
 ---
@@ -25,12 +25,14 @@ under the License.
 * Replaced by the TOC
 {:toc}
 
-Flink 通过 `org.apache.flink.core.fs.FileSystem` 类来对自己的文件系统进行抽象。
-这种抽象为各种类型的文件系统实现提供一组通用的 `operation` 和最小的保证。
+Flink has its own file system abstraction via the `org.apache.flink.core.fs.FileSystem` class.
+This abstraction provides a common set of operations and minimal guarantees across various types
+of file system implementations.
 
-`FileSystem` 为了支持多种文件系统，有着非常有限的可用 `operation` 集。 例如，它不支持对现有文件进行增量或变异操作。
+The `FileSystem`'s set of available operations is quite limited, in order to support a wide
+range of file systems. For example, appending to or mutating existing files is not supported.
 
-文件系统是由确认的 *文件系统格式* 开头, 例如 `file://`，`hdfs://` 等.
+File systems are identified by a *file system scheme*, such as `file://`, `hdfs://`, etc.
 
 # Implementations
 

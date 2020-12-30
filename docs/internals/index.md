@@ -1,8 +1,8 @@
 ---
-title: "内幕"
+title: "Internals"
 nav-id: internals
 nav-pos: 21
-nav-title: '<i class="fa fa-book title dessert" aria-hidden="true"></i> 内幕'
+nav-title: '<i class="fa fa-book title dessert" aria-hidden="true"></i> Internals'
 nav-parent_id: root
 ---
 <!--

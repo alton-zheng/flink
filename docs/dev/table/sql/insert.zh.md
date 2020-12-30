@@ -1,103 +1,58 @@
----
-title: "INSERT 语句"
-nav-parent_id: sql
-nav-pos: 5
----
-<!--
-Licensed to the Apache Software Foundation (ASF) under one
-or more contributor license agreements.  See the NOTICE file
-distributed with this work for additional information
-regarding copyright ownership.  The ASF licenses this file
-to you under the Apache License, Version 2.0 (the
-"License"); you may not use this file except in compliance
-with the License.  You may obtain a copy of the License at
+# INSERT 语句
 
-  http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing,
-software distributed under the License is distributed on an
-"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-KIND, either express or implied.  See the License for the
-specific language governing permissions and limitations
-under the License.
--->
-
-* This will be replaced by the TOC
-{:toc}
+- [执行 INSERT 语句](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/sql/insert.html#执行-insert-语句)
+- 将 SELECT 查询数据插入表中
+  - [语法](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/sql/insert.html#语法)
+  - [示例](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/sql/insert.html#示例)
+- 将值插入表中
+  - [语法](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/sql/insert.html#语法-1)
+  - [示例](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/sql/insert.html#示例-1)
 
 INSERT 语句用来向表中添加行。
 
 ## 执行 INSERT 语句
 
-可以使用 `TableEnvironment` 中的 `sqlUpdate()` 方法执行 INSERT 语句，也可以在 [SQL CLI]({{ site.baseurl }}/zh/dev/table/sqlClient.html) 中执行 INSERT 语句。`sqlUpdate()` 方法执行 INSERT 语句时时懒执行的，只有当`TableEnvironment.execute(jobName)`被调用时才会被执行。
+单条 INSERT 语句，可以使用 `TableEnvironment` 中的 `executeSql()` 方法执行。`executeSql()` 方法执行 INSERT 语句时会立即提交一个 Flink 作业，并且返回一个 TableResult 对象，通过该对象可以获取 JobClient 方便的操作提交的作业。 多条 INSERT 语句，使用 `TableEnvironment` 中的 `createStatementSet` 创建一个 `StatementSet` 对象，然后使用 `StatementSet` 中的 `addInsertSql()` 方法添加多条 INSERT 语句，最后通过 `StatementSet` 中的 `execute()` 方法来执行。
 
-以下的例子展示了如何在 `TableEnvironment` 和  SQL CLI 中执行一个 INSERT 语句。
+以下的例子展示了如何在 `TableEnvironment` 中执行一条 INSERT 语句，或者通过 `StatementSet` 执行多条 INSERT 语句。
 
-<div class="codetabs" markdown="1">
-<div data-lang="java" markdown="1">
-{% highlight java %}
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/sql/insert.html#tab_Java_1)
+- [**Scala**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/sql/insert.html#tab_Scala_1)
+- [**Python**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/sql/insert.html#tab_Python_1)
+- [**SQL CLI**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/sql/insert.html#tab_SQL_CLI_1)
+
+```
 EnvironmentSettings settings = EnvironmentSettings.newInstance()...
 TableEnvironment tEnv = TableEnvironment.create(settings);
 
 // 注册一个 "Orders" 源表，和 "RubberOrders" 结果表
-tEnv.sqlUpdate("CREATE TABLE Orders (`user` BIGINT, product VARCHAR, amount INT) WITH (...)");
-tEnv.sqlUpdate("CREATE TABLE RubberOrders(product VARCHAR, amount INT) WITH (...)");
+tEnv.executeSql("CREATE TABLE Orders (`user` BIGINT, product VARCHAR, amount INT) WITH (...)");
+tEnv.executeSql("CREATE TABLE RubberOrders(product VARCHAR, amount INT) WITH (...)");
 
-// 运行一个 INSERT 语句，将源表的数据输出到结果表中
-tEnv.sqlUpdate(
+// 运行一条 INSERT 语句，将源表的数据输出到结果表中
+TableResult tableResult1 = tEnv.executeSql(
   "INSERT INTO RubberOrders SELECT product, amount FROM Orders WHERE product LIKE '%Rubber%'");
-{% endhighlight %}
-</div>
+// 通过 TableResult 来获取作业状态
+System.out.println(tableResult1.getJobClient().get().getJobStatus());
 
-<div data-lang="scala" markdown="1">
-{% highlight scala %}
-val settings = EnvironmentSettings.newInstance()...
-val tEnv = TableEnvironment.create(settings)
+//----------------------------------------------------------------------------
+// 注册一个 "GlassOrders" 结果表用于运行多 INSERT 语句
+tEnv.executeSql("CREATE TABLE GlassOrders(product VARCHAR, amount INT) WITH (...)");
 
-// 注册一个 "Orders" 源表，和 "RubberOrders" 结果表
-tEnv.sqlUpdate("CREATE TABLE Orders (`user` BIGINT, product STRING, amount INT) WITH (...)")
-tEnv.sqlUpdate("CREATE TABLE RubberOrders(product STRING, amount INT) WITH (...)")
+// 运行多条 INSERT 语句，将原表数据输出到多个结果表中
+StatementSet stmtSet = tEnv.createStatementSet();
+// `addInsertSql` 方法每次只接收单条 INSERT 语句
+stmtSet.addInsertSql(
+  "INSERT INTO RubberOrders SELECT product, amount FROM Orders WHERE product LIKE '%Rubber%'");
+stmtSet.addInsertSql(
+  "INSERT INTO GlassOrders SELECT product, amount FROM Orders WHERE product LIKE '%Glass%'");
+// 执行刚刚添加的所有 INSERT 语句
+TableResult tableResult2 = stmtSet.execute();
+// 通过 TableResult 来获取作业状态
+System.out.println(tableResult1.getJobClient().get().getJobStatus());
+```
 
-// 运行一个 INSERT 语句，将源表的数据输出到结果表中
-tEnv.sqlUpdate(
-  "INSERT INTO RubberOrders SELECT product, amount FROM Orders WHERE product LIKE '%Rubber%'")
-{% endhighlight %}
-</div>
-
-<div data-lang="python" markdown="1">
-{% highlight python %}
-settings = EnvironmentSettings.newInstance()...
-table_env = TableEnvironment.create(settings)
-
-# 注册一个 "Orders" 源表，和 "RubberOrders" 结果表
-table_env.sqlUpdate("CREATE TABLE Orders (`user` BIGINT, product STRING, amount INT) WITH (...)")
-table_env.sqlUpdate("CREATE TABLE RubberOrders(product STRING, amount INT) WITH (...)")
-
-# 运行一个 INSERT 语句，将源表的数据输出到结果表中
-table_env \
-    .sqlUpdate("INSERT INTO RubberOrders SELECT product, amount FROM Orders WHERE product LIKE '%Rubber%'")
-{% endhighlight %}
-</div>
-
-<div data-lang="SQL CLI" markdown="1">
-{% highlight sql %}
-Flink SQL> CREATE TABLE Orders (`user` BIGINT, product STRING, amount INT) WITH (...);
-[INFO] Table has been created.
-
-Flink SQL> CREATE TABLE RubberOrders(product STRING, amount INT) WITH (...);
-
-Flink SQL> SHOW TABLES;
-Orders
-RubberOrders
-
-Flink SQL> INSERT INTO RubberOrders SELECT product, amount FROM Orders WHERE product LIKE '%Rubber%';
-[INFO] Submitting SQL update statement to the cluster...
-[INFO] Table update statement has been successfully submitted to the cluster:
-{% endhighlight %}
-</div>
-</div>
-
-{% top %}
+[ Back to top](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/sql/insert.html#top)
 
 ## 将 SELECT 查询数据插入表中
 
@@ -105,14 +60,12 @@ Flink SQL> INSERT INTO RubberOrders SELECT product, amount FROM Orders WHERE pro
 
 ### 语法
 
-{% highlight sql %}
-
+```
 INSERT { INTO | OVERWRITE } [catalog_name.][db_name.]table_name [PARTITION part_spec] select_statement
 
 part_spec:
   (part_col_name1=val1 [, part_col_name2=val2, ...])
-
-{% endhighlight %}
+```
 
 **OVERWRITE**
 
@@ -124,7 +77,7 @@ part_spec:
 
 ### 示例
 
-{% highlight sql %}
+```
 -- 创建一个分区表
 CREATE TABLE country_page_view (user STRING, cnt INT, date STRING, country STRING)
 PARTITIONED BY (date, country)
@@ -145,7 +98,7 @@ INSERT OVERWRITE country_page_view PARTITION (date='2019-8-30', country='China')
 -- 覆盖行到分区 (date, country) 中，其中 date 是静态分区 '2019-8-30'；country 是动态分区，其值由每一行动态决定
 INSERT OVERWRITE country_page_view PARTITION (date='2019-8-30')
   SELECT user, cnt, country FROM page_view_source;
-{% endhighlight %}
+```
 
 ## 将值插入表中
 
@@ -153,12 +106,12 @@ INSERT OVERWRITE country_page_view PARTITION (date='2019-8-30')
 
 ### 语法
 
-{% highlight sql %}
+```
 INSERT { INTO | OVERWRITE } [catalog_name.][db_name.]table_name VALUES values_row [, values_row ...]
 
 values_row:
     : (val1 [, val2, ...])
-{% endhighlight %}
+```
 
 **OVERWRITE**
 
@@ -166,13 +119,9 @@ values_row:
 
 ### 示例
 
-{% highlight sql %}
-
+```
 CREATE TABLE students (name STRING, age INT, gpa DECIMAL(3, 2)) WITH (...);
 
 INSERT INTO students
   VALUES ('fred flintstone', 35, 1.28), ('barney rubble', 32, 2.32);
-
-{% endhighlight %}
-
-{% top %}
+```

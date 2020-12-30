@@ -1,10 +1,38 @@
-# 窗
+---
+title: "Windows"
+nav-parent_id: streaming_operators
+nav-id: windows
+nav-pos: 10
+---
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
 
-Windows 是处理无限流的核心。Windows 将流分成有限大小的“存储桶”，我们可以在其上应用计算。本文档重点介绍如何在 Flink 中执行窗口化，以及程序员如何从其提供的功能中获得最大收益。
+  http://www.apache.org/licenses/LICENSE-2.0
 
-窗口式 Flink 程序的一般结构如下所示。第一个片段指的是*键控*流，第二个片段指的*是非\_\_键控*流。正如人们所看到的，唯一的区别是`keyBy(...)`呼吁密钥流和`window(...)`成为`windowAll(...)`非键控流。这还将用作本页面其余部分的路线图。
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
 
-**键控视窗**
+Windows are at the heart of processing infinite streams. Windows split the stream into "buckets" of finite size,
+over which we can apply computations. This document focuses on how windowing is performed in Flink and how the
+programmer can benefit to the maximum from its offered functionality.
+
+The general structure of a windowed Flink program is presented below. The first snippet refers to *keyed* streams,
+while the second to *non-keyed* ones. As one can see, the only difference is the `keyBy(...)` call for the keyed streams
+and the `window(...)` which becomes `windowAll(...)` for non-keyed streams. This is also going to serve as a roadmap
+for the rest of the page.
+
+**Keyed Windows**
 
     stream
            .keyBy(...)               <-  keyed versus non-keyed windows
@@ -16,7 +44,7 @@ Windows 是处理无限流的核心。Windows 将流分成有限大小的“存�
            .reduce/aggregate/fold/apply()      <-  required: "function"
           [.getSideOutput(...)]      <-  optional: "output tag"
 
-**非键 Windows**
+**Non-Keyed Windows**
 
     stream
            .windowAll(...)           <-  required: "assigner"
@@ -27,637 +55,1033 @@ Windows 是处理无限流的核心。Windows 将流分成有限大小的“存�
            .reduce/aggregate/fold/apply()      <-  required: "function"
           [.getSideOutput(...)]      <-  optional: "output tag"
 
-在上面，方括号（\[…\]）中的命令是可选的。这表明 Flink 允许您以多种不同方式自定义窗口逻辑，从而使其最适合您的需求。
+In the above, the commands in square brackets ([...]) are optional. This reveals that Flink allows you to customize your
+windowing logic in many different ways so that it best fits your needs.
 
-- [窗口生命周期](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#window-lifecycle)
-- [键控与非键控 Windows](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#keyed-vs-non-keyed-windows)
-- [窗口分配器](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#window-assigners)
-  - [翻滚视窗](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tumbling-windows)
-  - [滑动窗](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#sliding-windows)
-  - [会话窗口](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#session-windows)
-  - [全球视窗](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#global-windows)
-- [视窗功能](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#window-functions)
-  - [Reduce 功能](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#reducefunction)
-  - [聚合函数](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#aggregatefunction)
-  - [折叠功能](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#foldfunction)
-  - [ProcessWindowFunction](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#processwindowfunction)
-  - [具有增量聚合的 ProcessWindowFunction](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#processwindowfunction-with-incremental-aggregation)
-  - [在 ProcessWindowFunction 中使用每个窗口状态](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#using-per-window-state-in-processwindowfunction)
-  - [WindowFunction（旧版）](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#windowfunction-legacy)
-- [扳机](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#triggers)
-  - [火与净化](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#fire-and-purge)
-  - [WindowAssigners 的默认触发器](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#default-triggers-of-windowassigners)
-  - [内置和自定义触发器](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#built-in-and-custom-triggers)
-- [驱逐者](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#evictors)
-- [允许延迟](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#allowed-lateness)
-  - [获取最新数据作为侧面输出](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#getting-late-data-as-a-side-output)
-  - [后期元素注意事项](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#late-elements-considerations)
-- [处理窗口结果](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#working-with-window-results)
-  - [水印和窗户的相互作用](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#interaction-of-watermarks-and-windows)
-  - [连续窗口操作](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#consecutive-windowed-operations)
-- [有用的州规模考虑](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#useful-state-size-considerations)
+* This will be replaced by the TOC
+{:toc}
 
-## 窗口生命周期
+## Window Lifecycle
 
-简而言之，一旦应属于该窗口的第一个元素到达，就会**创建**一个窗口，并且当时间（事件或处理时间）超过其结束时间戳加上用户指定的时间（请参阅“ [允许](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#allowed-lateness)延迟”）后，该窗口将被**完全删除**。 ）。Flink 保证只删除基于时间的窗口，而不能删除其他类型的窗口，*例如*全局窗口（请参阅[窗口分配器](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#window-assigners)）。例如，采用基于事件时间的开窗策略，该策略每 5 分钟创建一次不重叠（或翻滚）的窗口，并允许延迟 1 分钟，因此 Flink 将为和之间的间隔创建一个新窗口。` allowed lateness``12:00``12:05 `当带有时间戳的第一个元素落入此间隔时，当水印通过`12:06`  时间戳时，它将删除它。
+In a nutshell, a window is **created** as soon as the first element that should belong to this window arrives, and the
+window is **completely removed** when the time (event or processing time) passes its end timestamp plus the user-specified
+`allowed lateness` (see [Allowed Lateness](#allowed-lateness)). Flink guarantees removal only for time-based
+windows and not for other types, *e.g.* global windows (see [Window Assigners](#window-assigners)). For example, with an
+event-time-based windowing strategy that creates non-overlapping (or tumbling) windows every 5 minutes and has an allowed
+lateness of 1 min, Flink will create a new window for the interval between `12:00` and `12:05` when the first element with
+a timestamp that falls into this interval arrives, and it will remove it when the watermark passes the `12:06`
+timestamp.
 
-此外，每个窗口将具有`Trigger`（参见[触发器](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#triggers)）和一个函数（`ProcessWindowFunction`，`ReduceFunction`， `AggregateFunction`或`FoldFunction`）（见[窗口功能](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#window-functions)）连接到它。该函数将包含要应用于窗口内容的计算，而则`Trigger`指定了在什么条件下可以将窗口视为要应用该函数的条件。触发策略可能类似于“当窗口中的元素数大于 4 时”或“当水印通过窗口末尾时”。触发器还可以决定在创建和删除窗口之间的任何时间清除窗口的内容。在这种情况下，清除仅是指窗口中的元素，而*不是*窗口元数据。这意味着仍可以将新数据添加到该窗口。
+In addition, each window will have a `Trigger` (see [Triggers](#triggers)) and a function (`ProcessWindowFunction`, `ReduceFunction`,
+or `AggregateFunction`) (see [Window Functions](#window-functions)) attached to it. The function will contain the computation to
+be applied to the contents of the window, while the `Trigger` specifies the conditions under which the window is
+considered ready for the function to be applied. A triggering policy might be something like "when the number of elements
+in the window is more than 4", or "when the watermark passes the end of the window". A trigger can also decide to
+purge a window's contents any time between its creation and removal. Purging in this case only refers to the elements
+in the window, and *not* the window metadata. This means that new data can still be added to that window.
 
-除上述内容外，您还可以指定一个`Evictor`（请参阅[Evictors](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#evictors)），该触发器将在触发触发器后以及应用此功能之前和/或之后从窗口中删除元素。
+Apart from the above, you can specify an `Evictor` (see [Evictors](#evictors)) which will be able to remove
+elements from the window after the trigger fires and before and/or after the function is applied.
 
-在下文中，我们将对上述每个组件进行更详细的介绍。我们先从上面的代码片段中的必需部分开始（请参见[Keyed ](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#window-assigner)[vs Non- ](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#keyed-vs-non-keyed-windows)[Keyed ](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#window-assigner)[Windows](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#keyed-vs-non-keyed-windows)，[Window Assigner](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#window-assigner)和  [Window Function](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#window-function)），然后再转到可选部分。
+In the following we go into more detail for each of the components above. We start with the required parts in the above
+snippet (see [Keyed vs Non-Keyed Windows](#keyed-vs-non-keyed-windows), [Window Assigner](#window-assigner), and
+[Window Function](#window-function)) before moving to the optional ones.
 
-## 键控与非键控 Windows
+## Keyed vs Non-Keyed Windows
 
-要指定的第一件事是您的流是否应该设置密钥。这必须在定义窗口之前完成。使用`keyBy(...)`会将您的无限流分割成逻辑键流。如果`keyBy(...)`未调用，则不会为您的流设置密钥。
+The first thing to specify is whether your stream should be keyed or not. This has to be done before defining the window.
+Using the `keyBy(...)` will split your infinite stream into logical keyed streams. If `keyBy(...)` is not called, your
+stream is not keyed.
 
-在密钥流的情况下，你的传入事件的任何属性可以作为一个按键（详情[点击这里](https://ci.apache.org/projects/flink/flink-docs-release-1.10/dev/api_concepts.html#specifying-keys)）。拥有键控流将允许您的窗口化计算由多个任务并行执行，因为每个逻辑键控流都可以独立于其余逻辑流进行处理。引用同一键的所有元素将被发送到同一并行任务。
+In the case of keyed streams, any attribute of your incoming events can be used as a key
+(more details [here]({% link dev/stream/state/state.md %}#keyed-datastream)). Having a keyed stream will
+allow your windowed computation to be performed in parallel by multiple tasks, as each logical keyed stream can be processed
+independently from the rest. All elements referring to the same key will be sent to the same parallel task.
 
-对于非键控流，您的原始流将不会拆分为多个逻辑流，并且所有窗口逻辑将由单个任务执行，*即*并行度为 1。
+In case of non-keyed streams, your original stream will not be split into multiple logical streams and all the windowing logic
+will be performed by a single task, *i.e.* with parallelism of 1.
 
-## 窗口分配器
+## Window Assigners
 
-在指定您的流是否为键控之后，下一步是定义*窗口分配器*。窗口分配器定义了如何将元素分配给窗口。这是通过`WindowAssigner`  在`window(...)`（针对*键控*流）或`windowAll()`（针对*非键控*流）调用中指定您选择的选项来完成的。
+After specifying whether your stream is keyed or not, the next step is to define a *window assigner*.
+The window assigner defines how elements are assigned to windows. This is done by specifying the `WindowAssigner`
+of your choice in the `window(...)` (for *keyed* streams) or the `windowAll()` (for *non-keyed* streams) call.
 
-A `WindowAssigner`负责将每个传入元素分配给一个或多个窗口。Flink 带有针对最常见用例的预定义窗口分配器，即*滚动窗口*， *滑动窗口*，*会话窗口*和*全局窗口*。您还可以通过扩展`WindowAssigner`类来实现自定义窗口分配器。所有内置窗口分配器（全局窗口除外）均根据时间将元素分配给窗口，时间可以是处理时间，也可以是事件时间。请查看[事件时间](https://ci.apache.org/projects/flink/flink-docs-release-1.10/dev/event_time.html)部分，以了解处理时间和事件时间之间的差异以及时间戳和水印的生成方式。
+A `WindowAssigner` is responsible for assigning each incoming element to one or more windows. Flink comes
+with pre-defined window assigners for the most common use cases, namely *tumbling windows*,
+*sliding windows*, *session windows* and *global windows*. You can also implement a custom window assigner by
+extending the `WindowAssigner` class. All built-in window assigners (except the global
+windows) assign elements to windows based on time, which can either be processing time or event
+time. Please take a look at our section on [event time]({% link dev/event_time.md %}) to learn
+about the difference between processing time and event time and how timestamps and watermarks are generated.
 
-基于时间的窗口具有*开始时间戳*（包括端点）和*结束\_\_时间戳*（包括端点），它们共同描述了窗口的大小。在代码中，Flink 在使用`TimeWindow`基于时间的窗口时使用，该方法具有查询开始和结束时间戳记的方法`maxTimestamp()`，还具有返回给定窗口允许的最大时间戳的附加方法。
+Time-based windows have a *start timestamp* (inclusive) and an *end timestamp* (exclusive)
+that together describe the size of the window. In code, Flink uses `TimeWindow` when working with
+time-based windows which has methods for querying the start- and end-timestamp and also an
+additional method `maxTimestamp()` that returns the largest allowed timestamp for a given windows.
 
-下面，我们展示 Flink 的预定义窗口分配器如何工作以及如何在 DataStream 程序中使用它们。下图显示了每个分配器的工作情况。紫色圆圈表示流的元素，这些元素被某个键（在这种情况下为*用户 1*，*用户 2*和*用户 3*）划分。x 轴显示时间进度。
+In the following, we show how Flink's pre-defined window assigners work and how they are used
+in a DataStream program. The following figures visualize the workings of each assigner. The purple circles
+represent elements of the stream, which are partitioned by some key (in this case *user 1*, *user 2* and *user 3*).
+The x-axis shows the progress of time.
 
-### 翻滚视窗
+### Tumbling Windows
 
-甲*翻滚窗口*分配器受让人的每个元素到指定的窗口*的窗口大小*。滚动窗口具有固定的大小，并且不重叠。例如，如果您指定大小为 5 分钟的翻滚窗口，则将评估当前窗口，并且每五分钟将启动一个新窗口，如下图所示。
+A *tumbling windows* assigner assigns each element to a window of a specified *window size*.
+Tumbling windows have a fixed size and do not overlap. For example, if you specify a tumbling
+window with a size of 5 minutes, the current window will be evaluated and a new window will be
+started every five minutes as illustrated by the following figure.
 
-![](https://ci.apache.org/projects/flink/flink-docs-release-1.10/fig/tumbling-windows.svg)
+<img src="{% link /fig/tumbling-windows.svg %}" class="center" style="width: 100%;" />
 
-以下代码段显示了如何使用滚动窗口。
+The following code snippets show how to use tumbling windows.
 
-- [**爪哇**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_java_0)
-- [**斯卡拉**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_scala_0)
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
+DataStream<T> input = ...;
 
-  DataStream<T> input = ...;
+// tumbling event-time windows
+input
+    .keyBy(<key selector>)
+    .window(TumblingEventTimeWindows.of(Time.seconds(5)))
+    .<windowed transformation>(<window function>);
 
-  // tumbling event-time windows
-  input
-  .keyBy(<key selector>)
-  .window(TumblingEventTimeWindows.of(Time.seconds(5)))
-  .<windowed transformation>(<window function>);
+// tumbling processing-time windows
+input
+    .keyBy(<key selector>)
+    .window(TumblingProcessingTimeWindows.of(Time.seconds(5)))
+    .<windowed transformation>(<window function>);
 
-  // tumbling processing-time windows
-  input
-  .keyBy(<key selector>)
-  .window(TumblingProcessingTimeWindows.of(Time.seconds(5)))
-  .<windowed transformation>(<window function>);
+// daily tumbling event-time windows offset by -8 hours.
+input
+    .keyBy(<key selector>)
+    .window(TumblingEventTimeWindows.of(Time.days(1), Time.hours(-8)))
+    .<windowed transformation>(<window function>);
+{% endhighlight %}
+</div>
 
-  // daily tumbling event-time windows offset by -8 hours.
-  input
-  .keyBy(<key selector>)
-  .window(TumblingEventTimeWindows.of(Time.days(1), Time.hours(-8)))
-  .<windowed transformation>(<window function>);
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
+val input: DataStream[T] = ...
 
-时间间隔可以通过使用一个指定`Time.milliseconds(x)`，`Time.seconds(x)`， `Time.minutes(x)`，等等。
+// tumbling event-time windows
+input
+    .keyBy(<key selector>)
+    .window(TumblingEventTimeWindows.of(Time.seconds(5)))
+    .<windowed transformation>(<window function>)
 
-如最后一个示例所示，滚动窗口分配器还采用一个可选`offset`  参数，该参数可用于更改窗口的对齐方式。例如，如果没有偏移，则每小时滚动窗口与 epoch 对齐，即您将获得诸如的窗口  `1:00:00.000 - 1:59:59.999`，`2:00:00.000 - 2:59:59.999`依此类推。如果要更改，可以提供一个偏移量。随着 15 分钟的偏移量，你会，例如，拿  `1:15:00.000 - 2:14:59.999`，`2:15:00.000 - 3:14:59.999`等一个重要的用例的偏移是窗口调整到比 UTC-0 时区等。例如，在中国，您必须指定的偏移量`Time.hours(-8)`。
+// tumbling processing-time windows
+input
+    .keyBy(<key selector>)
+    .window(TumblingProcessingTimeWindows.of(Time.seconds(5)))
+    .<windowed transformation>(<window function>)
 
-### 滑动窗
+// daily tumbling event-time windows offset by -8 hours.
+input
+    .keyBy(<key selector>)
+    .window(TumblingEventTimeWindows.of(Time.days(1), Time.hours(-8)))
+    .<windowed transformation>(<window function>)
+{% endhighlight %}
+</div>
+</div>
 
-该*滑动窗口*分配器受让人元件以固定长度的窗口。类似于滚动窗口分配器，*窗口的大小*由*窗口大小*参数配置。附加的*窗口滑动*参数控制滑动窗口启动的频率。因此，如果幻灯片小于窗口大小，则滑动窗口可能会重叠。在这种情况下，元素被分配给多个窗口。
+Time intervals can be specified by using one of `Time.milliseconds(x)`, `Time.seconds(x)`,
+`Time.minutes(x)`, and so on.
 
-例如，您可以将大小为 10 分钟的窗口滑动 5 分钟。这样，您每隔 5 分钟就会得到一个窗口，其中包含最近 10 分钟内到达的事件，如下图所示。
+As shown in the last example, tumbling window assigners also take an optional `offset`
+parameter that can be used to change the alignment of windows. For example, without offsets
+hourly tumbling windows are aligned with epoch, that is you will get windows such as
+`1:00:00.000 - 1:59:59.999`, `2:00:00.000 - 2:59:59.999` and so on. If you want to change
+that you can give an offset. With an offset of 15 minutes you would, for example, get
+`1:15:00.000 - 2:14:59.999`, `2:15:00.000 - 3:14:59.999` etc.
+An important use case for offsets is to adjust windows to timezones other than UTC-0.
+For example, in China you would have to specify an offset of `Time.hours(-8)`.
 
-![](https://ci.apache.org/projects/flink/flink-docs-release-1.10/fig/sliding-windows.svg)
+### Sliding Windows
 
-以下代码段显示了如何使用滑动窗口。
+The *sliding windows* assigner assigns elements to windows of fixed length. Similar to a tumbling
+windows assigner, the size of the windows is configured by the *window size* parameter.
+An additional *window slide* parameter controls how frequently a sliding window is started. Hence,
+sliding windows can be overlapping if the slide is smaller than the window size. In this case elements
+are assigned to multiple windows.
 
-- [**爪哇**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_java_1)
-- [**斯卡拉**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_scala_1)
+For example, you could have windows of size 10 minutes that slides by 5 minutes. With this you get every
+5 minutes a window that contains the events that arrived during the last 10 minutes as depicted by the
+following figure.
 
-  DataStream<T> input = ...;
+<img src="{% link /fig/sliding-windows.svg %}" class="center" style="width: 100%;" />
 
-  // sliding event-time windows
-  input
-  .keyBy(<key selector>)
-  .window(SlidingEventTimeWindows.of(Time.seconds(10), Time.seconds(5)))
-  .<windowed transformation>(<window function>);
+The following code snippets show how to use sliding windows.
 
-  // sliding processing-time windows
-  input
-  .keyBy(<key selector>)
-  .window(SlidingProcessingTimeWindows.of(Time.seconds(10), Time.seconds(5)))
-  .<windowed transformation>(<window function>);
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
+DataStream<T> input = ...;
 
-  // sliding processing-time windows offset by -8 hours
-  input
-  .keyBy(<key selector>)
-  .window(SlidingProcessingTimeWindows.of(Time.hours(12), Time.hours(1), Time.hours(-8)))
-  .<windowed transformation>(<window function>);
+// sliding event-time windows
+input
+    .keyBy(<key selector>)
+    .window(SlidingEventTimeWindows.of(Time.seconds(10), Time.seconds(5)))
+    .<windowed transformation>(<window function>);
 
-时间间隔可以通过使用一个指定`Time.milliseconds(x)`，`Time.seconds(x)`， `Time.minutes(x)`，等等。
+// sliding processing-time windows
+input
+    .keyBy(<key selector>)
+    .window(SlidingProcessingTimeWindows.of(Time.seconds(10), Time.seconds(5)))
+    .<windowed transformation>(<window function>);
 
-如最后一个示例所示，滑动窗口分配器还带有一个可选`offset`参数，可用于更改窗口的对齐方式。例如，如果没有偏移，则每小时滑动 30 分钟的窗口将与 epoch 对齐，即您将获得诸如的窗口  `1:00:00.000 - 1:59:59.999`，`1:30:00.000 - 2:29:59.999`依此类推。如果要更改，可以提供一个偏移量。随着 15 分钟的偏移量，你会，例如，拿  `1:15:00.000 - 2:14:59.999`，`1:45:00.000 - 2:44:59.999`等一个重要的用例的偏移是窗口调整到比 UTC-0 时区等。例如，在中国，您必须指定的偏移量`Time.hours(-8)`。
+// sliding processing-time windows offset by -8 hours
+input
+    .keyBy(<key selector>)
+    .window(SlidingProcessingTimeWindows.of(Time.hours(12), Time.hours(1), Time.hours(-8)))
+    .<windowed transformation>(<window function>);
+{% endhighlight %}
+</div>
 
-### 会话窗口
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
+val input: DataStream[T] = ...
 
-在*会话窗口*出让方按活动的会话组中的元素。与*滚动窗口*和*滑动窗口*相比，会话窗口不重叠且没有固定的开始和结束时间。相反，当会话窗口在一定时间段内未收到元素时（_即_，发生不活动间隙时），它将关闭。会话窗口分配器可与静态配置*会话间隙*或与  *会话间隙提取*功能，其限定不活动周期有多长。当该时间段到期时，当前会话关闭，随后的元素被分配给新的会话窗口。
+// sliding event-time windows
+input
+    .keyBy(<key selector>)
+    .window(SlidingEventTimeWindows.of(Time.seconds(10), Time.seconds(5)))
+    .<windowed transformation>(<window function>)
 
-![](https://ci.apache.org/projects/flink/flink-docs-release-1.10/fig/session-windows.svg)
+// sliding processing-time windows
+input
+    .keyBy(<key selector>)
+    .window(SlidingProcessingTimeWindows.of(Time.seconds(10), Time.seconds(5)))
+    .<windowed transformation>(<window function>)
 
-以下代码段显示了如何使用会话窗口。
+// sliding processing-time windows offset by -8 hours
+input
+    .keyBy(<key selector>)
+    .window(SlidingProcessingTimeWindows.of(Time.hours(12), Time.hours(1), Time.hours(-8)))
+    .<windowed transformation>(<window function>)
+{% endhighlight %}
+</div>
+</div>
 
-- [**爪哇**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_java_2)
-- [**斯卡拉**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_scala_2)
+Time intervals can be specified by using one of `Time.milliseconds(x)`, `Time.seconds(x)`,
+`Time.minutes(x)`, and so on.
 
-  DataStream<T> input = ...;
+As shown in the last example, sliding window assigners also take an optional `offset` parameter
+that can be used to change the alignment of windows. For example, without offsets hourly windows
+sliding by 30 minutes are aligned with epoch, that is you will get windows such as
+`1:00:00.000 - 1:59:59.999`, `1:30:00.000 - 2:29:59.999` and so on. If you want to change that
+you can give an offset. With an offset of 15 minutes you would, for example, get
+`1:15:00.000 - 2:14:59.999`, `1:45:00.000 - 2:44:59.999` etc.
+An important use case for offsets is to adjust windows to timezones other than UTC-0.
+For example, in China you would have to specify an offset of `Time.hours(-8)`.
 
-  // event-time session windows with static gap
-  input
-  .keyBy(<key selector>)
-  .window(EventTimeSessionWindows.withGap(Time.minutes(10)))
-  .<windowed transformation>(<window function>);
+### Session Windows
+
+The *session windows* assigner groups elements by sessions of activity. Session windows do not overlap and
+do not have a fixed start and end time, in contrast to *tumbling windows* and *sliding windows*. Instead a
+session window closes when it does not receive elements for a certain period of time, *i.e.*, when a gap of
+inactivity occurred. A session window assigner can be configured with either a static *session gap* or with a 
+*session gap extractor* function which defines how long the period of inactivity is. When this period expires, 
+the current session closes and subsequent elements are assigned to a new session window.
+
+<img src="{% link /fig/session-windows.svg %}" class="center" style="width: 100%;" />
+
+The following code snippets show how to use session windows.
+
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
+DataStream<T> input = ...;
+
+// event-time session windows with static gap
+input
+    .keyBy(<key selector>)
+    .window(EventTimeSessionWindows.withGap(Time.minutes(10)))
+    .<windowed transformation>(<window function>);
     
-  // event-time session windows with dynamic gap
-  input
-  .keyBy(<key selector>)
-  .window(EventTimeSessionWindows.withDynamicGap((element) -> {
-  // determine and return session gap
-  }))
-  .<windowed transformation>(<window function>);
+// event-time session windows with dynamic gap
+input
+    .keyBy(<key selector>)
+    .window(EventTimeSessionWindows.withDynamicGap((element) -> {
+        // determine and return session gap
+    }))
+    .<windowed transformation>(<window function>);
 
-  // processing-time session windows with static gap
-  input
-  .keyBy(<key selector>)
-  .window(ProcessingTimeSessionWindows.withGap(Time.minutes(10)))
-  .<windowed transformation>(<window function>);
+// processing-time session windows with static gap
+input
+    .keyBy(<key selector>)
+    .window(ProcessingTimeSessionWindows.withGap(Time.minutes(10)))
+    .<windowed transformation>(<window function>);
     
-  // processing-time session windows with dynamic gap
-  input
-  .keyBy(<key selector>)
-  .window(ProcessingTimeSessionWindows.withDynamicGap((element) -> {
-  // determine and return session gap
-  }))
-  .<windowed transformation>(<window function>);
+// processing-time session windows with dynamic gap
+input
+    .keyBy(<key selector>)
+    .window(ProcessingTimeSessionWindows.withDynamicGap((element) -> {
+        // determine and return session gap
+    }))
+    .<windowed transformation>(<window function>);
+{% endhighlight %}
+</div>
 
-静态间隙可以通过使用中的一个来指定`Time.milliseconds(x)`，`Time.seconds(x)`， `Time.minutes(x)`，等。
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
+val input: DataStream[T] = ...
 
-动态间隙是通过实现`SessionWindowTimeGapExtractor`接口指定的。
+// event-time session windows with static gap
+input
+    .keyBy(<key selector>)
+    .window(EventTimeSessionWindows.withGap(Time.minutes(10)))
+    .<windowed transformation>(<window function>)
 
-注意由于会话窗口没有固定的开始和结束，因此对它们的评估方式不同于滚动窗口和滑动窗口。在内部，会话窗口运算符会为每个到达的记录创建一个新窗口，如果窗口彼此之间的距离比已定义的间隔小，则将它们合并在一起。为了可合并的，会话窗口操作者需要一个合并[触发器](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#triggers)以及合并  [的窗函数](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#window-functions)，如`ReduceFunction`，`AggregateFunction`，或`ProcessWindowFunction` （`FoldFunction`不能合并。）
+// event-time session windows with dynamic gap
+input
+    .keyBy(<key selector>)
+    .window(EventTimeSessionWindows.withDynamicGap(new SessionWindowTimeGapExtractor[String] {
+      override def extract(element: String): Long = {
+        // determine and return session gap
+      }
+    }))
+    .<windowed transformation>(<window function>)
 
-### 全球视窗
+// processing-time session windows with static gap
+input
+    .keyBy(<key selector>)
+    .window(ProcessingTimeSessionWindows.withGap(Time.minutes(10)))
+    .<windowed transformation>(<window function>)
 
-一个*全球性的窗口*分配器分配使用相同的密钥相同的单个的所有元素*全局窗口*。仅当您还指定自定义[触发器时，](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#triggers)此窗口方案才有用。否则，将不会执行任何计算，因为全局窗口没有可以处理聚合元素的自然终点。
 
-![](https://ci.apache.org/projects/flink/flink-docs-release-1.10/fig/non-windowed.svg)
+// processing-time session windows with dynamic gap
+input
+    .keyBy(<key selector>)
+    .window(DynamicProcessingTimeSessionWindows.withDynamicGap(new SessionWindowTimeGapExtractor[String] {
+      override def extract(element: String): Long = {
+        // determine and return session gap
+      }
+    }))
+    .<windowed transformation>(<window function>)
+{% endhighlight %}
+</div>
+</div>
 
-以下代码段显示了如何使用全局窗口。
+Static gaps can be specified by using one of `Time.milliseconds(x)`, `Time.seconds(x)`,
+`Time.minutes(x)`, and so on.
 
-- [**爪哇**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_java_3)
-- [**斯卡拉**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_scala_3)
+Dynamic gaps are specified by implementing the `SessionWindowTimeGapExtractor` interface.
 
-  DataStream<T> input = ...;
+<span class="label label-danger">Attention</span> Since session windows do not have a fixed start and end,
+they are  evaluated differently than tumbling and sliding windows. Internally, a session window operator
+creates a new window for each arriving record and merges windows together if they are closer to each other
+than the defined gap.
+In order to be mergeable, a session window operator requires a merging [Trigger](#triggers) and a merging
+[Window Function](#window-functions), such as `ReduceFunction`, `AggregateFunction`, or `ProcessWindowFunction`
 
-  input
-  .keyBy(<key selector>)
-  .window(GlobalWindows.create())
-  .<windowed transformation>(<window function>);
+### Global Windows
 
-## 视窗功能
+A *global windows* assigner assigns all elements with the same key to the same single *global window*.
+This windowing scheme is only useful if you also specify a custom [trigger](#triggers). Otherwise,
+no computation will be performed, as the global window does not have a natural end at
+which we could process the aggregated elements.
 
-定义窗口分配器后，我们需要指定要在每个窗口上执行的计算。这是*窗口函数*的职责，一旦系统确定某个窗口已准备好进行处理，就可以使用该*窗口函数*来处理每个（可能是键控）窗口的元素（请参阅 Flink 如何确定窗口准备就绪的[触发器](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#triggers)）。
+<img src="{% link /fig/non-windowed.svg %}" class="center" style="width: 100%;" />
 
-的窗函数可以是一个`ReduceFunction`，`AggregateFunction`，`FoldFunction`或`ProcessWindowFunction`。前两个可以更有效地执行（请参阅“ [状态大小”](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#state%20size)部分），因为 Flink 可以在每个窗口到达时以递增方式聚合它们。A `ProcessWindowFunction`获取`Iterable`窗口中包含的所有元素的，以及有关元素所属窗口的其他元信息。
+The following code snippets show how to use a global window.
 
-带 a 的窗口转换`ProcessWindowFunction`不能像其他情况一样有效地执行，因为 Flink 必须在调用函数之前在内部缓冲窗口的*所有*元素。这可以通过组合来减轻`ProcessWindowFunction`与`ReduceFunction`，`AggregateFunction`或`FoldFunction`以获得窗口元件的两个增量聚集和该附加元数据窗口  `ProcessWindowFunction`接收。我们将看每个变体的示例。
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
+DataStream<T> input = ...;
 
-### Reduce 功能
+input
+    .keyBy(<key selector>)
+    .window(GlobalWindows.create())
+    .<windowed transformation>(<window function>);
+{% endhighlight %}
+</div>
 
-A `ReduceFunction`指定如何将输入中的两个元素组合在一起以产生相同类型的输出元素。Flink 使用 a `ReduceFunction`来逐步聚合窗口的元素。
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
+val input: DataStream[T] = ...
 
-阿`ReduceFunction`可以定义像这样使用：
+input
+    .keyBy(<key selector>)
+    .window(GlobalWindows.create())
+    .<windowed transformation>(<window function>)
+{% endhighlight %}
+</div>
+</div>
 
-- [**爪哇**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_java_4)
-- [**斯卡拉**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_scala_4)
+## Window Functions
 
-  DataStream<Tuple2<String, Long>> input = ...;
+After defining the window assigner, we need to specify the computation that we want
+to perform on each of these windows. This is the responsibility of the *window function*, which is used to process the
+elements of each (possibly keyed) window once the system determines that a window is ready for processing
+(see [triggers](#triggers) for how Flink determines when a window is ready).
 
-  input
-  .keyBy(<key selector>)
-  .window(<window assigner>)
-  .reduce(new ReduceFunction<Tuple2<String, Long>> {
-  public Tuple2<String, Long> reduce(Tuple2<String, Long> v1, Tuple2<String, Long> v2) {
-  return new Tuple2<>(v1.f0, v1.f1 + v2.f1);
-  }
-  });
+The window function can be one of `ReduceFunction`, `AggregateFunction`, or `ProcessWindowFunction`. The first
+two can be executed more efficiently (see [State Size](#state size) section) because Flink can incrementally aggregate
+the elements for each window as they arrive. A `ProcessWindowFunction` gets an `Iterable` for all the elements contained in a
+window and additional meta information about the window to which the elements belong.
 
-上面的示例汇总了窗口中所有元素的元组的第二个字段。
+A windowed transformation with a `ProcessWindowFunction` cannot be executed as efficiently as the other
+cases because Flink has to buffer *all* elements for a window internally before invoking the function.
+This can be mitigated by combining a `ProcessWindowFunction` with a `ReduceFunction`, or `AggregateFunction` to
+get both incremental aggregation of window elements and the additional window metadata that the
+`ProcessWindowFunction` receives. We will look at examples for each of these variants.
 
-### 聚合函数
+### ReduceFunction
 
-一个`AggregateFunction`是一个一般化版本`ReduceFunction`，其具有三种类型：输入类型（`IN`），蓄压式（`ACC`），和一个输出类型（`OUT`）。输入类型是输入流中元素的类型，并且`AggregateFunction`具有将一个输入元素添加到累加器的方法。该接口还具有创建初始累加器，将两个累加器合并为一个累加器以及`OUT`从累加器提取输出（类型）的方法。我们将在下面的示例中看到它的工作原理。
+A `ReduceFunction` specifies how two elements from the input are combined to produce
+an output element of the same type. Flink uses a `ReduceFunction` to incrementally aggregate
+the elements of a window.
 
-与一样`ReduceFunction`，Flink 将在窗口输入元素到达时增量地聚合它们。
+A `ReduceFunction` can be defined and used like this:
 
-一个`AggregateFunction`可以被定义并这样使用：
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
+DataStream<Tuple2<String, Long>> input = ...;
 
-- [**爪哇**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_java_5)
-- [**斯卡拉**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_scala_5)
+input
+    .keyBy(<key selector>)
+    .window(<window assigner>)
+    .reduce(new ReduceFunction<Tuple2<String, Long>> {
+      public Tuple2<String, Long> reduce(Tuple2<String, Long> v1, Tuple2<String, Long> v2) {
+        return new Tuple2<>(v1.f0, v1.f1 + v2.f1);
+      }
+    });
+{% endhighlight %}
+</div>
 
-  /\*\*
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
+val input: DataStream[(String, Long)] = ...
 
-  - The accumulator is used to keep a running sum and a count. The {@code getResult} method
-  - computes the average.
-    \*/
-    private static class AverageAggregate
+input
+    .keyBy(<key selector>)
+    .window(<window assigner>)
+    .reduce { (v1, v2) => (v1._1, v1._2 + v2._2) }
+{% endhighlight %}
+</div>
+</div>
+
+The above example sums up the second fields of the tuples for all elements in a window.
+
+### AggregateFunction
+
+An `AggregateFunction` is a generalized version of a `ReduceFunction` that has three types: an
+input type (`IN`), accumulator type (`ACC`), and an output type (`OUT`). The input type is the type
+of elements in the input stream and the `AggregateFunction` has a method for adding one input
+element to an accumulator. The interface also has methods for creating an initial accumulator,
+for merging two accumulators into one accumulator and for extracting an output (of type `OUT`) from
+an accumulator. We will see how this works in the example below.
+
+Same as with `ReduceFunction`, Flink will incrementally aggregate input elements of a window as they
+arrive.
+
+An `AggregateFunction` can be defined and used like this:
+
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
+
+/**
+ * The accumulator is used to keep a running sum and a count. The {@code getResult} method
+ * computes the average.
+ */
+private static class AverageAggregate
     implements AggregateFunction<Tuple2<String, Long>, Tuple2<Long, Long>, Double> {
-    @Override
-    public Tuple2<Long, Long> createAccumulator() {
+  @Override
+  public Tuple2<Long, Long> createAccumulator() {
     return new Tuple2<>(0L, 0L);
-    }
+  }
 
   @Override
   public Tuple2<Long, Long> add(Tuple2<String, Long> value, Tuple2<Long, Long> accumulator) {
-  return new Tuple2<>(accumulator.f0 + value.f1, accumulator.f1 + 1L);
+    return new Tuple2<>(accumulator.f0 + value.f1, accumulator.f1 + 1L);
   }
 
   @Override
   public Double getResult(Tuple2<Long, Long> accumulator) {
-  return ((double) accumulator.f0) / accumulator.f1;
+    return ((double) accumulator.f0) / accumulator.f1;
   }
 
   @Override
   public Tuple2<Long, Long> merge(Tuple2<Long, Long> a, Tuple2<Long, Long> b) {
-  return new Tuple2<>(a.f0 + b.f0, a.f1 + b.f1);
+    return new Tuple2<>(a.f0 + b.f0, a.f1 + b.f1);
   }
-  }
+}
 
-  DataStream<Tuple2<String, Long>> input = ...;
+DataStream<Tuple2<String, Long>> input = ...;
 
-  input
-  .keyBy(<key selector>)
-  .window(<window assigner>)
-  .aggregate(new AverageAggregate());
+input
+    .keyBy(<key selector>)
+    .window(<window assigner>)
+    .aggregate(new AverageAggregate());
+{% endhighlight %}
+</div>
 
-上面的示例计算窗口中元素的第二个字段的平均值。
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
 
-### 折叠功能
+/**
+ * The accumulator is used to keep a running sum and a count. The [getResult] method
+ * computes the average.
+ */
+class AverageAggregate extends AggregateFunction[(String, Long), (Long, Long), Double] {
+  override def createAccumulator() = (0L, 0L)
 
-A `FoldFunction`指定如何将窗口的输入元素与输出类型的元素组合。所述`FoldFunction`递增称为该被添加到窗口和电流输出值的每个元素。第一个元素与输出类型的预定义初始值组合。
+  override def add(value: (String, Long), accumulator: (Long, Long)) =
+    (accumulator._1 + value._2, accumulator._2 + 1L)
 
-阿`FoldFunction`可以定义像这样使用：
+  override def getResult(accumulator: (Long, Long)) = accumulator._1 / accumulator._2
 
-- [**爪哇**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_java_6)
-- [**斯卡拉**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_scala_6)
+  override def merge(a: (Long, Long), b: (Long, Long)) =
+    (a._1 + b._1, a._2 + b._2)
+}
 
-  DataStream<Tuple2<String, Long>> input = ...;
+val input: DataStream[(String, Long)] = ...
 
-  input
-  .keyBy(<key selector>)
-  .window(<window assigner>)
-  .fold("", new FoldFunction<Tuple2<String, Long>, String>> {
-  public String fold(String acc, Tuple2<String, Long> value) {
-  return acc + value.f1;
-  }
-  });
+input
+    .keyBy(<key selector>)
+    .window(<window assigner>)
+    .aggregate(new AverageAggregate)
+{% endhighlight %}
+</div>
+</div>
 
-上面的示例将所有输入`Long`值附加到最初为空的`String`。
-
-注意  `fold()`不能与会话窗口或其他可合并窗口一起使用。
+The above example computes the average of the second field of the elements in the window.
 
 ### ProcessWindowFunction
 
-ProcessWindowFunction 获取一个 Iterable，该 Iterable 包含窗口的所有元素，以及一个 Context 对象，该对象可以访问时间和状态信息，从而使其比其他窗口函数更具灵活性。这是以性能和资源消耗为代价的，因为不能增量聚合元素，而是需要在内部对其进行缓冲，直到认为该窗口已准备好进行处理为止。
+A ProcessWindowFunction gets an Iterable containing all the elements of the window, and a Context
+object with access to time and state information, which enables it to provide more flexibility than
+other window functions. This comes at the cost of performance and resource consumption, because
+elements cannot be incrementally aggregated but instead need to be buffered internally until the
+window is considered ready for processing.
 
-`ProcessWindowFunction`look  的签名如下：
+The signature of `ProcessWindowFunction` looks as follows:
 
-- [**爪哇**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_java_7)
-- [**斯卡拉**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_scala_7)
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
+public abstract class ProcessWindowFunction<IN, OUT, KEY, W extends Window> implements Function {
 
-  public abstract class ProcessWindowFunction<IN, OUT, KEY, W extends Window> implements Function {
+    /**
+     * Evaluates the window and outputs none or several elements.
+     *
+     * @param key The key for which this window is evaluated.
+     * @param context The context in which the window is being evaluated.
+     * @param elements The elements in the window being evaluated.
+     * @param out A collector for emitting elements.
+     *
+     * @throws Exception The function may throw exceptions to fail the program and trigger recovery.
+     */
+    public abstract void process(
+            KEY key,
+            Context context,
+            Iterable<IN> elements,
+            Collector<OUT> out) throws Exception;
 
-      /**
-       * Evaluates the window and outputs none or several elements.
-       *
-       * @param key The key for which this window is evaluated.
-       * @param context The context in which the window is being evaluated.
-       * @param elements The elements in the window being evaluated.
-       * @param out A collector for emitting elements.
-       *
-       * @throws Exception The function may throw exceptions to fail the program and trigger recovery.
-       */
-      public abstract void process(
-              KEY key,
-              Context context,
-              Iterable<IN> elements,
-              Collector<OUT> out) throws Exception;
+   	/**
+   	 * The context holding window metadata.
+   	 */
+   	public abstract class Context implements java.io.Serializable {
+   	    /**
+   	     * Returns the window that is being evaluated.
+   	     */
+   	    public abstract W window();
+
+   	    /** Returns the current processing time. */
+   	    public abstract long currentProcessingTime();
+
+   	    /** Returns the current event-time watermark. */
+   	    public abstract long currentWatermark();
+
+   	    /**
+   	     * State accessor for per-key and per-window state.
+   	     *
+   	     * <p><b>NOTE:</b>If you use per-window state you have to ensure that you clean it up
+   	     * by implementing {@link ProcessWindowFunction#clear(Context)}.
+   	     */
+   	    public abstract KeyedStateStore windowState();
+
+   	    /**
+   	     * State accessor for per-key global state.
+   	     */
+   	    public abstract KeyedStateStore globalState();
+   	}
+
+}
+{% endhighlight %}
+</div>
+
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
+abstract class ProcessWindowFunction[IN, OUT, KEY, W <: Window] extends Function {
 
   /**
-  _ The context holding window metadata.
-  _/
-  public abstract class Context implements java.io.Serializable {
+    * Evaluates the window and outputs none or several elements.
+    *
+    * @param key      The key for which this window is evaluated.
+    * @param context  The context in which the window is being evaluated.
+    * @param elements The elements in the window being evaluated.
+    * @param out      A collector for emitting elements.
+    * @throws Exception The function may throw exceptions to fail the program and trigger recovery.
+    */
+  def process(
+      key: KEY,
+      context: Context,
+      elements: Iterable[IN],
+      out: Collector[OUT])
+
   /**
-  _ Returns the window that is being evaluated.
-  _/
-  public abstract W window();
+    * The context holding window metadata
+    */
+  abstract class Context {
+    /**
+      * Returns the window that is being evaluated.
+      */
+    def window: W
 
-  /\*_ Returns the current processing time. _/
-  public abstract long currentProcessingTime();
+    /**
+      * Returns the current processing time.
+      */
+    def currentProcessingTime: Long
 
-  /\*_ Returns the current event-time watermark. _/
-  public abstract long currentWatermark();
+    /**
+      * Returns the current event-time watermark.
+      */
+    def currentWatermark: Long
 
-  /\*\*
-  _ State accessor for per-key and per-window state.
-  _
-  _ <p><b>NOTE:</b>If you use per-window state you have to ensure that you clean it up
-  _ by implementing {@link ProcessWindowFunction#clear(Context)}.
-  \*/
-  public abstract KeyedStateStore windowState();
+    /**
+      * State accessor for per-key and per-window state.
+      */
+    def windowState: KeyedStateStore
 
-  /\*\*
-  _ State accessor for per-key global state.
-  _/
-  public abstract KeyedStateStore globalState();
+    /**
+      * State accessor for per-key global state.
+      */
+    def globalState: KeyedStateStore
   }
 
-  }
+}
+{% endhighlight %}
+</div>
+</div>
 
-注意：该`key`参数是通过提取的关键`KeySelector`是被指定的`keyBy()`调用。如果是元组索引键或字符串字段引用，则始终使用此键类型，`Tuple`并且必须手动将其强制转换为正确大小的元组以提取键字段。
+<span class="label label-info">Note</span> The `key` parameter is the key that is extracted
+via the `KeySelector` that was specified for the `keyBy()` invocation. In case of tuple-index
+keys or string-field references this key type is always `Tuple` and you have to manually cast
+it to a tuple of the correct size to extract the key fields.
 
-阿`ProcessWindowFunction`可以定义像这样使用：
+A `ProcessWindowFunction` can be defined and used like this:
 
-- [**爪哇**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_java_8)
-- [**斯卡拉**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_scala_8)
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
+DataStream<Tuple2<String, Long>> input = ...;
 
-  DataStream<Tuple2<String, Long>> input = ...;
-
-  input
+input
   .keyBy(t -> t.f0)
-  .timeWindow(Time.minutes(5))
+  .window(TumblingEventTimeWindows.of(Time.minutes(5)))
   .process(new MyProcessWindowFunction());
 
-  /_ ... _/
+/* ... */
 
-  public class MyProcessWindowFunction
-  extends ProcessWindowFunction<Tuple2<String, Long>, String, String, TimeWindow> {
+public class MyProcessWindowFunction 
+    extends ProcessWindowFunction<Tuple2<String, Long>, String, String, TimeWindow> {
 
   @Override
   public void process(String key, Context context, Iterable<Tuple2<String, Long>> input, Collector<String> out) {
-  long count = 0;
-  for (Tuple2<String, Long> in: input) {
-  count++;
+    long count = 0;
+    for (Tuple2<String, Long> in: input) {
+      count++;
+    }
+    out.collect("Window: " + context.window() + "count: " + count);
   }
-  out.collect("Window: " + context.window() + "count: " + count);
+}
+
+{% endhighlight %}
+</div>
+
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
+val input: DataStream[(String, Long)] = ...
+
+input
+  .keyBy(_._1)
+  .window(TumblingEventTimeWindows.of(Time.minutes(5)))
+  .process(new MyProcessWindowFunction())
+
+/* ... */
+
+class MyProcessWindowFunction extends ProcessWindowFunction[(String, Long), String, String, TimeWindow] {
+
+  def process(key: String, context: Context, input: Iterable[(String, Long)], out: Collector[String]) = {
+    var count = 0L
+    for (in <- input) {
+      count = count + 1
+    }
+    out.collect(s"Window ${context.window} count: $count")
   }
-  }
+}
+{% endhighlight %}
+</div>
+</div>
 
-该示例显示了一个`ProcessWindowFunction`计算窗口中元素的方法。另外，窗口功能将有关窗口的信息添加到输出中。
+The example shows a `ProcessWindowFunction` that counts the elements in a window. In addition, the window function adds information about the window to the output.
 
-注意请注意，`ProcessWindowFunction`用于简单的聚合（例如 count）效率很低。下一部分说明如何将`ReduceFunction`或`AggregateFunction`与或结合使用，以`ProcessWindowFunction`同时获得增量聚合和的附加信息`ProcessWindowFunction`。
+<span class="label label-danger">Attention</span> Note that using `ProcessWindowFunction` for simple aggregates such as count is quite inefficient. The next section shows how a `ReduceFunction` or `AggregateFunction` can be combined with a `ProcessWindowFunction` to get both incremental aggregation and the added information of a `ProcessWindowFunction`.
 
-### 具有增量聚合的 ProcessWindowFunction
+### ProcessWindowFunction with Incremental Aggregation
 
-`ProcessWindowFunction`可以将 A  与 a `ReduceFunction`，an `AggregateFunction`或 a  组合以在`FoldFunction`元素到达窗口时对其进行递增聚合。当窗口关闭时，`ProcessWindowFunction`将提供汇总结果。这样一来，它就可以增量计算窗口，同时可以访问的其他窗口元信息`ProcessWindowFunction`。
+A `ProcessWindowFunction` can be combined with either a `ReduceFunction`, or an `AggregateFunction` to
+incrementally aggregate elements as they arrive in the window.
+When the window is closed, the `ProcessWindowFunction` will be provided with the aggregated result.
+This allows it to incrementally compute windows while having access to the
+additional window meta information of the `ProcessWindowFunction`.
 
-注意您也可以使用旧版`WindowFunction`而不是  `ProcessWindowFunction`用于增量窗口聚合。
+<span class="label label-info">Note</span> You can also use the legacy `WindowFunction` instead of
+`ProcessWindowFunction` for incremental window aggregation.
 
-#### 具有 ReduceFunction 的增量窗口聚合
+#### Incremental Window Aggregation with ReduceFunction
 
-以下示例显示了如何将增量`ReduceFunction`与 a 组合`ProcessWindowFunction`以返回窗口中的最小事件以及该窗口的开始时间。
+The following example shows how an incremental `ReduceFunction` can be combined with
+a `ProcessWindowFunction` to return the smallest event in a window along
+with the start time of the window.
 
-- [**爪哇**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_java_9)
-- [**斯卡拉**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_scala_9)
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
+DataStream<SensorReading> input = ...;
 
-  DataStream<SensorReading> input = ...;
-
-  input
+input
   .keyBy(<key selector>)
-  .timeWindow(<duration>)
+  .window(<window assigner>)
   .reduce(new MyReduceFunction(), new MyProcessWindowFunction());
 
-  // Function definitions
+// Function definitions
 
-  private static class MyReduceFunction implements ReduceFunction<SensorReading> {
+private static class MyReduceFunction implements ReduceFunction<SensorReading> {
 
   public SensorReading reduce(SensorReading r1, SensorReading r2) {
-  return r1.value() > r2.value() ? r2 : r1;
+      return r1.value() > r2.value() ? r2 : r1;
   }
-  }
+}
 
-  private static class MyProcessWindowFunction
-  extends ProcessWindowFunction<SensorReading, Tuple2<Long, SensorReading>, String, TimeWindow> {
+private static class MyProcessWindowFunction
+    extends ProcessWindowFunction<SensorReading, Tuple2<Long, SensorReading>, String, TimeWindow> {
 
   public void process(String key,
-  Context context,
-  Iterable<SensorReading> minReadings,
-  Collector<Tuple2<Long, SensorReading>> out) {
-  SensorReading min = minReadings.iterator().next();
-  out.collect(new Tuple2<Long, SensorReading>(context.window().getStart(), min));
+                    Context context,
+                    Iterable<SensorReading> minReadings,
+                    Collector<Tuple2<Long, SensorReading>> out) {
+      SensorReading min = minReadings.iterator().next();
+      out.collect(new Tuple2<Long, SensorReading>(context.window().getStart(), min));
   }
-  }
+}
 
-#### 具有 AggregateFunction 的增量窗口聚合
+{% endhighlight %}
+</div>
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
 
-以下示例显示了如何将增量`AggregateFunction`与 a 组合`ProcessWindowFunction`以计算平均值，并与平均值一起发出键和窗口。
+val input: DataStream[SensorReading] = ...
 
-- [**爪哇**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_java_10)
-- [**斯卡拉**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_scala_10)
-
-  DataStream<Tuple2<String, Long>> input = ...;
-
-  input
+input
   .keyBy(<key selector>)
-  .timeWindow(<duration>)
+  .window(<window assigner>)
+  .reduce(
+    (r1: SensorReading, r2: SensorReading) => { if (r1.value > r2.value) r2 else r1 },
+    ( key: String,
+      context: ProcessWindowFunction[_, _, _, TimeWindow]#Context,
+      minReadings: Iterable[SensorReading],
+      out: Collector[(Long, SensorReading)] ) =>
+      {
+        val min = minReadings.iterator.next()
+        out.collect((context.window.getStart, min))
+      }
+  )
+
+{% endhighlight %}
+</div>
+</div>
+
+#### Incremental Window Aggregation with AggregateFunction
+
+The following example shows how an incremental `AggregateFunction` can be combined with
+a `ProcessWindowFunction` to compute the average and also emit the key and window along with
+the average.
+
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
+DataStream<Tuple2<String, Long>> input = ...;
+
+input
+  .keyBy(<key selector>)
+  .window(<window assigner>)
   .aggregate(new AverageAggregate(), new MyProcessWindowFunction());
 
-  // Function definitions
+// Function definitions
 
-  /\*\*
-
-  - The accumulator is used to keep a running sum and a count. The {@code getResult} method
-  - computes the average.
-    \*/
-    private static class AverageAggregate
+/**
+ * The accumulator is used to keep a running sum and a count. The {@code getResult} method
+ * computes the average.
+ */
+private static class AverageAggregate
     implements AggregateFunction<Tuple2<String, Long>, Tuple2<Long, Long>, Double> {
-    @Override
-    public Tuple2<Long, Long> createAccumulator() {
+  @Override
+  public Tuple2<Long, Long> createAccumulator() {
     return new Tuple2<>(0L, 0L);
-    }
+  }
 
   @Override
   public Tuple2<Long, Long> add(Tuple2<String, Long> value, Tuple2<Long, Long> accumulator) {
-  return new Tuple2<>(accumulator.f0 + value.f1, accumulator.f1 + 1L);
+    return new Tuple2<>(accumulator.f0 + value.f1, accumulator.f1 + 1L);
   }
 
   @Override
   public Double getResult(Tuple2<Long, Long> accumulator) {
-  return ((double) accumulator.f0) / accumulator.f1;
+    return ((double) accumulator.f0) / accumulator.f1;
   }
 
   @Override
   public Tuple2<Long, Long> merge(Tuple2<Long, Long> a, Tuple2<Long, Long> b) {
-  return new Tuple2<>(a.f0 + b.f0, a.f1 + b.f1);
+    return new Tuple2<>(a.f0 + b.f0, a.f1 + b.f1);
   }
-  }
+}
 
-  private static class MyProcessWindowFunction
-  extends ProcessWindowFunction<Double, Tuple2<String, Double>, String, TimeWindow> {
+private static class MyProcessWindowFunction
+    extends ProcessWindowFunction<Double, Tuple2<String, Double>, String, TimeWindow> {
 
   public void process(String key,
-  Context context,
-  Iterable<Double> averages,
-  Collector<Tuple2<String, Double>> out) {
-  Double average = averages.iterator().next();
-  out.collect(new Tuple2<>(key, average));
+                    Context context,
+                    Iterable<Double> averages,
+                    Collector<Tuple2<String, Double>> out) {
+      Double average = averages.iterator().next();
+      out.collect(new Tuple2<>(key, average));
   }
-  }
+}
 
-#### 具有 FoldFunction 的增量窗口聚合
+{% endhighlight %}
+</div>
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
 
-以下示例显示了如何将增量`FoldFunction`与组合`ProcessWindowFunction`以提取窗口中的事件数，并还返回窗口的键和结束时间。
+val input: DataStream[(String, Long)] = ...
 
-- [**爪哇**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_java_11)
-- [**斯卡拉**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_scala_11)
-
-  DataStream<SensorReading> input = ...;
-
-  input
-  .keyBy(<key selector>)
-  .timeWindow(<duration>)
-  .fold(new Tuple3<String, Long, Integer>("",0L, 0), new MyFoldFunction(), new MyProcessWindowFunction())
-
-  // Function definitions
-
-  private static class MyFoldFunction
-  implements FoldFunction<SensorReading, Tuple3<String, Long, Integer> > {
-
-  public Tuple3<String, Long, Integer> fold(Tuple3<String, Long, Integer> acc, SensorReading s) {
-  Integer cur = acc.getField(2);
-  acc.setField(cur + 1, 2);
-  return acc;
-  }
-  }
-
-  private static class MyProcessWindowFunction
-  extends ProcessWindowFunction<Tuple3<String, Long, Integer>, Tuple3<String, Long, Integer>, String, TimeWindow> {
-
-  public void process(String key,
-  Context context,
-  Iterable<Tuple3<String, Long, Integer>> counts,
-  Collector<Tuple3<String, Long, Integer>> out) {
-  Integer count = counts.iterator().next().getField(2);
-  out.collect(new Tuple3<String, Long, Integer>(key, context.window().getEnd(),count));
-  }
-  }
-
-### 在 ProcessWindowFunction 中使用每个窗口状态
-
-除了访问键控状态（如任何丰富功能所允许的那样），a `ProcessWindowFunction`还可以使用键控状态，该键控状态的范围仅限于该函数当前正在处理的窗口。在这种情况下，重要的是要了解*每个窗口*状态所指*的窗口*是什么。涉及不同的“窗口”：
-
-- 指定窗口操作时定义的窗口：这可能是*1 小时的翻滚窗口*或*2 小时的滑动窗口滑动 1 小时*。
-- 给定键的已定义窗口的实际实例：*对于用户 ID xyz，*这可能是*从 12:00 到 13:00 的时间窗口*。这是基于窗口定义的，并且基于作业当前正在处理的键的数量以及事件属于哪个时隙，将有许多窗口。
-
-每个窗口的状态与这两个中的后者相关。这意味着，如果我们处理 1000 个不同键的事件，并且当前所有事件的事件都落在*\[12:00，13:00）*时间窗口中，那么将有 1000 个窗口实例，每个实例具有各自的每个窗口状态。
-
-调用收到的`Context`对象上有两种方法`process()`可以访问两种状态：
-
-- `globalState()`，它允许访问不在窗口范围内的键状态
-- `windowState()`，它允许访问也作用于窗口的键控状态
-
-如果您预期同一窗口会多次触发，则此功能很有用，例如，对于迟到的数据有较晚的触发，或者您有进行推测性较早触发的自定义触发器时，可能会发生这种情况。在这种情况下，您将存储有关先前触发或每个窗口状态中触发次数的信息。
-
-使用窗口状态时，清除窗口时也要清除该状态，这一点很重要。这应该在`clear()`方法中发生。
-
-### WindowFunction（旧版）
-
-在某些`ProcessWindowFunction`可以使用 a 的地方，您也可以使用 a `WindowFunction`。这是旧版本`ProcessWindowFunction`，提供较少的上下文信息，并且没有某些高级功能，例如每个窗口的键状态。该接口将在某个时候被弃用。
-
-a 的签名`WindowFunction`如下：
-
-- [**爪哇**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_java_12)
-- [**斯卡拉**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_scala_12)
-
-  public interface WindowFunction<IN, OUT, KEY, W extends Window> extends Function, Serializable {
-
-  /\*\*
-
-  - Evaluates the window and outputs none or several elements.
-  -
-  - @param key The key for which this window is evaluated.
-  - @param window The window that is being evaluated.
-  - @param input The elements in the window being evaluated.
-  - @param out A collector for emitting elements.
-  -
-  - @throws Exception The function may throw exceptions to fail the program and trigger recovery.
-    \*/
-    void apply(KEY key, W window, Iterable<IN> input, Collector<OUT> out) throws Exception;
-    }
-
-可以这样使用：
-
-- [**爪哇**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_java_13)
-- [**斯卡拉**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_scala_13)
-
-  DataStream<Tuple2<String, Long>> input = ...;
-
-  input
+input
   .keyBy(<key selector>)
   .window(<window assigner>)
-  .apply(new MyWindowFunction());
+  .aggregate(new AverageAggregate(), new MyProcessWindowFunction())
 
-## 扳机
+// Function definitions
 
-A `Trigger`确定窗口（由*窗口分配器*形成）何时准备好由*窗口函数处理*。每个`WindowAssigner`都有一个默认值`Trigger`。如果默认触发器不符合您的需求，则可以使用指定自定义触发器`trigger(...)`。
+/**
+ * The accumulator is used to keep a running sum and a count. The [getResult] method
+ * computes the average.
+ */
+class AverageAggregate extends AggregateFunction[(String, Long), (Long, Long), Double] {
+  override def createAccumulator() = (0L, 0L)
 
-触发器接口具有五种方法，它们允许 a `Trigger`对不同事件做出反应：
+  override def add(value: (String, Long), accumulator: (Long, Long)) =
+    (accumulator._1 + value._2, accumulator._2 + 1L)
 
-- `onElement()`对于添加到窗口中的每个元素，都会调用该方法。
-- `onEventTime()`当注册的事件时间计时器触发时，将调用该方法。
-- `onProcessingTime()`当注册的处理时间计时器触发时，将调用该方法。
-- 该`onMerge()`方法与有状态触发器相关，并且在两个触发器的相应窗口合并时（*例如，*在使用会话窗口时）合并两个触发器的状态。
-- 最终，该`clear()`方法执行删除相应窗口后所需的任何操作。
+  override def getResult(accumulator: (Long, Long)) = accumulator._1 / accumulator._2
 
-关于上述方法，需要注意两件事：
+  override def merge(a: (Long, Long), b: (Long, Long)) =
+    (a._1 + b._1, a._2 + b._2)
+}
 
-1）前三个通过返回 a 来决定如何对调用事件采取行动`TriggerResult`。该动作可以是以下之一：
+class MyProcessWindowFunction extends ProcessWindowFunction[Double, (String, Double), String, TimeWindow] {
 
-- `CONTINUE`： 没做什么，
-- `FIRE`：触发计算，
-- `PURGE`：清除窗口中的元素，然后
-- `FIRE_AND_PURGE`：触发计算并随后清除窗口中的元素。
+  def process(key: String, context: Context, averages: Iterable[Double], out: Collector[(String, Double)]) = {
+    val average = averages.iterator.next()
+    out.collect((key, average))
+  }
+}
 
-2）这些方法中的任何一种都可以用于注册处理或事件时间计时器以用于将来的操作。
+{% endhighlight %}
+</div>
+</div>
 
-### 火与净化
+### Using per-window state in ProcessWindowFunction
 
-一旦触发器确定窗口已准备好进行处理，它将触发，*即*返回`FIRE`或`FIRE_AND_PURGE`。这是窗口运算符发出当前窗口结果的信号。给定一个包含`ProcessWindowFunction`  所有元素的窗口，则将其传递给`ProcessWindowFunction`（可能是在将它们传递给逐出者之后）。带有`ReduceFunction`，`AggregateFunction`或的 Windows `FoldFunction`只会发出热切的汇总结果。
+In addition to accessing keyed state (as any rich function can) a `ProcessWindowFunction` can
+also use keyed state that is scoped to the window that the function is currently processing. In this
+context it is important to understand what the window that *per-window* state is referring to is.
+There are different "windows" involved:
 
-当触发器触发时，它可以是`FIRE`或`FIRE_AND_PURGE`。在`FIRE`保留窗口内容的同时，`FIRE_AND_PURGE`删除其内容。默认情况下，预先实现的触发器仅在`FIRE`不清除窗口状态的情况下触发。
+ - The window that was defined when specifying the windowed operation: This might be *tumbling
+ windows of 1 hour* or *sliding windows of 2 hours that slide by 1 hour*.
+ - An actual instance of a defined window for a given key: This might be *time window from 12:00
+ to 13:00 for user-id xyz*. This is based on the window definition and there will be many windows
+ based on the number of keys that the job is currently processing and based on what time slots
+ the events fall into.
 
-注意清除将仅删除窗口的内容，并将保留有关该窗口的任何潜在元信息和任何触发状态。
+Per-window state is tied to the latter of those two. Meaning that if we process events for 1000
+different keys and events for all of them currently fall into the *[12:00, 13:00)* time window
+then there will be 1000 window instances that each have their own keyed per-window state.
 
-### WindowAssigners 的默认触发器
+There are two methods on the `Context` object that a `process()` invocation receives that allow
+access to the two types of state:
 
-默认`Trigger`的`WindowAssigner`是适用于许多使用情况。例如，所有事件时间窗口分配器都有`EventTimeTrigger`默认触发器。一旦水印通过窗口的末端，此触发器便会触发。
+ - `globalState()`, which allows access to keyed state that is not scoped to a window
+ - `windowState()`, which allows access to keyed state that is also scoped to the window
 
-注意的默认触发器`GlobalWindow`是`NeverTrigger`永不触发的。因此，使用时，您始终必须定义一个自定义触发器`GlobalWindow`。
+This feature is helpful if you anticipate multiple firing for the same window, as can happen when
+you have late firings for data that arrives late or when you have a custom trigger that does
+speculative early firings. In such a case you would store information about previous firings or
+the number of firings in per-window state.
 
-注意通过使用指定触发器，`trigger()`您将覆盖的默认触发器`WindowAssigner`。例如，如果您指定为  `CountTrigger`，则`TumblingEventTimeWindows`您将不再基于时间进度而是仅通过计数获得窗口触发。现在，如果要基于时间和计数做出反应，则必须编写自己的自定义触发器。
+When using windowed state it is important to also clean up that state when a window is cleared. This
+should happen in the `clear()` method.
 
-### 内置和自定义触发器
+### WindowFunction (Legacy)
 
-Flink 带有一些内置触发器。
+In some places where a `ProcessWindowFunction` can be used you can also use a `WindowFunction`. This
+is an older version of `ProcessWindowFunction` that provides less contextual information and does
+not have some advances features, such as per-window keyed state. This interface will be deprecated
+at some point.
 
-- （已经提到）`EventTimeTrigger`根据事件时间（由水印测量）的进度触发。
-- 在`ProcessingTimeTrigger`基于处理时间的火灾。
-- `CountTrigger`一旦窗口中的元素数量超过给定的限制，就会触发。
-- 在`PurgingTrigger`采用作为参数另一触发并将其转换为一个吹扫之一。
+The signature of a `WindowFunction` looks as follows:
 
-如果需要实现自定义触发器，则应签出抽象的  [Trigger](https://github.com/apache/flink/blob/master//flink-streaming-java/src/main/java/org/apache/flink/streaming/api/windowing/triggers/Trigger.java)类。请注意，API 仍在不断发展，并可能在 Flink 的未来版本中更改。
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
+public interface WindowFunction<IN, OUT, KEY, W extends Window> extends Function, Serializable {
 
-## 驱逐者
+  /**
+   * Evaluates the window and outputs none or several elements.
+   *
+   * @param key The key for which this window is evaluated.
+   * @param window The window that is being evaluated.
+   * @param input The elements in the window being evaluated.
+   * @param out A collector for emitting elements.
+   *
+   * @throws Exception The function may throw exceptions to fail the program and trigger recovery.
+   */
+  void apply(KEY key, W window, Iterable<IN> input, Collector<OUT> out) throws Exception;
+}
+{% endhighlight %}
+</div>
 
-Flink 的窗口模型允许`Evictor`除了`WindowAssigner`和之外还指定一个可选内容`Trigger`。可以使用`evictor(...)`方法完成（如本文档开头所示）。所述逐出器必须从一个窗口中删除元素的能力*之后*触发器触发和*之前和/或之后*被施加的窗口函数。为此，该`Evictor`接口有两种方法：
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
+trait WindowFunction[IN, OUT, KEY, W <: Window] extends Function with Serializable {
+
+  /**
+    * Evaluates the window and outputs none or several elements.
+    *
+    * @param key    The key for which this window is evaluated.
+    * @param window The window that is being evaluated.
+    * @param input  The elements in the window being evaluated.
+    * @param out    A collector for emitting elements.
+    * @throws Exception The function may throw exceptions to fail the program and trigger recovery.
+    */
+  def apply(key: KEY, window: W, input: Iterable[IN], out: Collector[OUT])
+}
+{% endhighlight %}
+</div>
+</div>
+
+It can be used like this:
+
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
+DataStream<Tuple2<String, Long>> input = ...;
+
+input
+    .keyBy(<key selector>)
+    .window(<window assigner>)
+    .apply(new MyWindowFunction());
+{% endhighlight %}
+</div>
+
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
+val input: DataStream[(String, Long)] = ...
+
+input
+    .keyBy(<key selector>)
+    .window(<window assigner>)
+    .apply(new MyWindowFunction())
+{% endhighlight %}
+</div>
+</div>
+
+## Triggers
+
+A `Trigger` determines when a window (as formed by the *window assigner*) is ready to be
+processed by the *window function*. Each `WindowAssigner` comes with a default `Trigger`.
+If the default trigger does not fit your needs, you can specify a custom trigger using `trigger(...)`.
+
+The trigger interface has five methods that allow a `Trigger` to react to different events:
+
+* The `onElement()` method is called for each element that is added to a window.
+* The `onEventTime()` method is called when  a registered event-time timer fires.
+* The `onProcessingTime()` method is called when a registered processing-time timer fires.
+* The `onMerge()` method is relevant for stateful triggers and merges the states of two triggers when their corresponding windows merge, *e.g.* when using session windows.
+* Finally the `clear()` method performs any action needed upon removal of the corresponding window.
+
+Two things to notice about the above methods are:
+
+1) The first three decide how to act on their invocation event by returning a `TriggerResult`. The action can be one of the following:
+
+* `CONTINUE`: do nothing,
+* `FIRE`: trigger the computation,
+* `PURGE`: clear the elements in the window, and
+* `FIRE_AND_PURGE`: trigger the computation and clear the elements in the window afterwards.
+
+2) Any of these methods can be used to register processing- or event-time timers for future actions.
+
+### Fire and Purge
+
+Once a trigger determines that a window is ready for processing, it fires, *i.e.*, it returns `FIRE` or `FIRE_AND_PURGE`. This is the signal for the window operator
+to emit the result of the current window. Given a window with a `ProcessWindowFunction`
+all elements are passed to the `ProcessWindowFunction` (possibly after passing them to an evictor).
+Windows with `ReduceFunction`, or `AggregateFunction` simply emit their eagerly aggregated result.
+
+When a trigger fires, it can either `FIRE` or `FIRE_AND_PURGE`. While `FIRE` keeps the contents of the window, `FIRE_AND_PURGE` removes its content.
+By default, the pre-implemented triggers simply `FIRE` without purging the window state.
+
+<span class="label label-danger">Attention</span> Purging will simply remove the contents of the window and will leave any potential meta-information about the window and any trigger state intact.
+
+### Default Triggers of WindowAssigners
+
+The default `Trigger` of a `WindowAssigner` is appropriate for many use cases. For example, all the event-time window assigners have an `EventTimeTrigger` as
+default trigger. This trigger simply fires once the watermark passes the end of a window.
+
+<span class="label label-danger">Attention</span> The default trigger of the `GlobalWindow` is the `NeverTrigger` which does never fire. Consequently, you always have to define a custom trigger when using a `GlobalWindow`.
+
+<span class="label label-danger">Attention</span> By specifying a trigger using `trigger()` you
+are overwriting the default trigger of a `WindowAssigner`. For example, if you specify a
+`CountTrigger` for `TumblingEventTimeWindows` you will no longer get window firings based on the
+progress of time but only by count. Right now, you have to write your own custom trigger if
+you want to react based on both time and count.
+
+### Built-in and Custom Triggers
+
+Flink comes with a few built-in triggers.
+
+* The (already mentioned) `EventTimeTrigger` fires based on the progress of event-time as measured by watermarks.
+* The `ProcessingTimeTrigger` fires based on processing time.
+* The `CountTrigger` fires once the number of elements in a window exceeds the given limit.
+* The `PurgingTrigger` takes as argument another trigger and transforms it into a purging one.
+
+If you need to implement a custom trigger, you should check out the abstract
+{% gh_link /flink-streaming-java/src/main/java/org/apache/flink/streaming/api/windowing/triggers/Trigger.java "Trigger" %} class.
+Please note that the API is still evolving and might change in future versions of Flink.
+
+## Evictors
+
+Flink’s windowing model allows specifying an optional `Evictor` in addition to the `WindowAssigner` and the `Trigger`.
+This can be done using the `evictor(...)` method (shown in the beginning of this document). The evictor has the ability
+to remove elements from a window *after* the trigger fires and *before and/or after* the window function is applied.
+To do so, the `Evictor` interface has two methods:
 
     /**
      * Optionally evicts elements. Called before windowing function.
@@ -679,114 +1103,218 @@ Flink 的窗口模型允许`Evictor`除了`WindowAssigner`和之外还指定一�
      */
     void evictAfter(Iterable<TimestampedValue<T>> elements, int size, W window, EvictorContext evictorContext);
 
-在`evictBefore()`包含窗口函数之前被施加驱逐逻辑，而`evictAfter()`  包含窗口函数之后要施加的一个。应用窗口功能之前逐出的元素将不会被其处理。
+The `evictBefore()` contains the eviction logic to be applied before the window function, while the `evictAfter()`
+contains the one to be applied after the window function. Elements evicted before the application of the window
+function will not be processed by it.
 
-Flink 附带了三个预先实施的驱逐程序。这些是：
+Flink comes with three pre-implemented evictors. These are:
 
-- `CountEvictor`：从窗口中保留用户指定数量的元素，并从窗口缓冲区的开头丢弃其余的元素。
-- `DeltaEvictor`：使用 a `DeltaFunction`和 a `threshold`，计算窗口缓冲区中最后一个元素与其余每个元素之间的差值，并删除差值大于或等于阈值的那些值。
-- `TimeEvictor`：以`interval`毫秒为单位作为参数，对于给定的窗口，它将`max_ts`在其元素中找到最大时间戳，并删除所有时间戳小于的元素`max_ts - interval`。
+* `CountEvictor`: keeps up to a user-specified number of elements from the window and discards the remaining ones from
+the beginning of the window buffer.
+* `DeltaEvictor`: takes a `DeltaFunction` and a `threshold`, computes the delta between the last element in the
+window buffer and each of the remaining ones, and removes the ones with a delta greater or equal to the threshold.
+* `TimeEvictor`: takes as argument an `interval` in milliseconds and for a given window, it finds the maximum
+timestamp `max_ts` among its elements and removes all the elements with timestamps smaller than `max_ts - interval`.
 
-默认默认情况下，所有预先实现的驱逐程序均在窗口函数之前应用其逻辑。
+<span class="label label-info">Default</span> By default, all the pre-implemented evictors apply their logic before the
+window function.
 
-注意指定退出者可防止任何预聚合，因为在应用计算之前必须将窗口的所有元素传递给退出者。
+<span class="label label-danger">Attention</span> Specifying an evictor prevents any pre-aggregation, as all the
+elements of a window have to be passed to the evictor before applying the computation.
 
-注意  Flink 不保证窗口中元素的顺序。这意味着，尽管退出者可以从窗口的开头删除元素，但是这些元素不一定是第一个或最后一个到达的元素。
+<span class="label label-danger">Attention</span> Flink provides no guarantees about the order of the elements within
+a window. This implies that although an evictor may remove elements from the beginning of the window, these are not
+necessarily the ones that arrive first or last.
 
-## 允许延迟
 
-在使用*事件时间*窗口时，可能会发生元素到达较晚的情况，*即* Flink 用于跟踪事件时间进度的水印已经超过了元素所属窗口的结束时间戳。请参阅  [事件时间](https://ci.apache.org/projects/flink/flink-docs-release-1.10/dev/event_time.html)，尤其是[后期元素](https://ci.apache.org/projects/flink/flink-docs-release-1.10/dev/event_time.html#late-elements)，以更全面地讨论 Flink 如何处理事件时间。
+## Allowed Lateness
 
-默认情况下，当水印超过窗口结尾时，将删除晚期元素。但是，Flink 允许为窗口运算符指定最大*允许延迟*。允许延迟指定元素删除之前可以延迟的时间，其默认值为 0。在水印通过窗口末端之后但在通过窗口末端之前到达的元素加上允许延迟，仍添加到窗口中。根据使用的触发器，延迟但未掉落的元素可能会导致窗口再次触发。的情况就是这样`EventTimeTrigger`。
+When working with *event-time* windowing, it can happen that elements arrive late, *i.e.* the watermark that Flink uses to
+keep track of the progress of event-time is already past the end timestamp of a window to which an element belongs. See
+[event time]({% link dev/event_time.md %}) and especially [late elements]({% link dev/event_time.md %}#late-elements) for a more thorough
+discussion of how Flink deals with event time.
 
-为了使此工作正常进行，Flink 保持窗口的状态，直到允许的延迟过期为止。一旦发生这种情况，Flink 将删除该窗口并删除其状态，如“ [窗口生命周期”](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#window-lifecycle)部分中所述。
+By default, late elements are dropped when the watermark is past the end of the window. However,
+Flink allows to specify a maximum *allowed lateness* for window operators. Allowed lateness
+specifies by how much time elements can be late before they are dropped, and its default value is 0.
+Elements that arrive after the watermark has passed the end of the window but before it passes the end of
+the window plus the allowed lateness, are still added to the window. Depending on the trigger used,
+a late but not dropped element may cause the window to fire again. This is the case for the `EventTimeTrigger`.
 
-默认默认情况下，允许的延迟设置为  `0`。也就是说，到达水印后的元素将被丢弃。
+In order to make this work, Flink keeps the state of windows until their allowed lateness expires. Once this happens, Flink removes the window and deletes its state, as
+also described in the [Window Lifecycle](#window-lifecycle) section.
 
-您可以这样指定允许的延迟：
+<span class="label label-info">Default</span> By default, the allowed lateness is set to
+`0`. That is, elements that arrive behind the watermark will be dropped.
 
-- [**爪哇**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_java_14)
-- [**斯卡拉**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_scala_14)
+You can specify an allowed lateness like this:
 
-  DataStream<T> input = ...;
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
+DataStream<T> input = ...;
 
-  input
-  .keyBy(<key selector>)
-  .window(<window assigner>)
-  .allowedLateness(<time>)
-  .<windowed transformation>(<window function>);
+input
+    .keyBy(<key selector>)
+    .window(<window assigner>)
+    .allowedLateness(<time>)
+    .<windowed transformation>(<window function>);
+{% endhighlight %}
+</div>
 
-注意使用`GlobalWindows`窗口分配器时，永远不会考虑任何数据，因为全局窗口的结束时间戳为`Long.MAX_VALUE`。
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
+val input: DataStream[T] = ...
 
-### 获取最新数据作为侧面输出
+input
+    .keyBy(<key selector>)
+    .window(<window assigner>)
+    .allowedLateness(<time>)
+    .<windowed transformation>(<window function>)
+{% endhighlight %}
+</div>
+</div>
 
-使用 Flink 的[侧面输出](https://ci.apache.org/projects/flink/flink-docs-release-1.10/dev/stream/side_output.html)功能，您可以获取最近被丢弃的数据流。
+<span class="label label-info">Note</span> When using the `GlobalWindows` window assigner no
+data is ever considered late because the end timestamp of the global window is `Long.MAX_VALUE`.
 
-首先，您需要指定要`sideOutputLateData(OutputTag)`在窗口流上使用的较晚数据。然后，您可以根据窗口化操作的结果获取侧面输出流：
+### Getting late data as a side output
 
-- [**爪哇**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_java_15)
-- [**斯卡拉**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_scala_15)
+Using Flink's [side output]({% link dev/stream/side_output.md %}) feature you can get a stream of the data
+that was discarded as late.
 
-  final OutputTag<T> lateOutputTag = new OutputTag<T>("late-data"){};
+You first need to specify that you want to get late data using `sideOutputLateData(OutputTag)` on
+the windowed stream. Then, you can get the side-output stream on the result of the windowed
+operation:
 
-  DataStream<T> input = ...;
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
+final OutputTag<T> lateOutputTag = new OutputTag<T>("late-data"){};
 
-  SingleOutputStreamOperator<T> result = input
-  .keyBy(<key selector>)
-  .window(<window assigner>)
-  .allowedLateness(<time>)
-  .sideOutputLateData(lateOutputTag)
-  .<windowed transformation>(<window function>);
+DataStream<T> input = ...;
 
-  DataStream<T> lateStream = result.getSideOutput(lateOutputTag);
+SingleOutputStreamOperator<T> result = input
+    .keyBy(<key selector>)
+    .window(<window assigner>)
+    .allowedLateness(<time>)
+    .sideOutputLateData(lateOutputTag)
+    .<windowed transformation>(<window function>);
 
-### 后期元素注意事项
+DataStream<T> lateStream = result.getSideOutput(lateOutputTag);
+{% endhighlight %}
+</div>
 
-当指定的允许延迟大于 0 时，在水印通过窗口末尾之后，将保留窗口及其内容。在这些情况下，当延迟但未丢弃的元素到达时，可能会触发该窗口的另一次触发。这些触发称为`late firings`，因为它们是由较晚的事件触发的，与之相反的`main firing`  是窗口的第一次触发。对于会话窗口，后期触发会进一步导致窗口合并，因为它们可能“弥合”两个预先存在的未合并窗口之间的间隙。
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
+val lateOutputTag = OutputTag[T]("late-data")
 
-注意您应注意，后期触发发射的元素应被视为先前计算的更新结果，即，您的数据流将包含同一计算的多个结果。根据您的应用程序，您需要考虑这些重复的结果或对它们进行重复数据删除。
+val input: DataStream[T] = ...
 
-## 处理窗口结果
+val result = input
+    .keyBy(<key selector>)
+    .window(<window assigner>)
+    .allowedLateness(<time>)
+    .sideOutputLateData(lateOutputTag)
+    .<windowed transformation>(<window function>)
 
-窗口化操作的结果再次是 a `DataStream`，结果元素中没有保留任何有关窗口化操作的信息，因此，如果要保留有关窗口的元信息，则必须在的结果元素中手动编码该信息  `ProcessWindowFunction`。在结果元素上设置的唯一相关信息是元素*timestamp*。设置为已处理窗口的最大允许时间戳，即*结束时间戳-1*，因为窗口结束时间戳是唯一的。请注意，对于事件时间窗口和处理时间窗口都是如此。也就是说，在窗口操作元素之后始终具有时间戳，但这可以是事件时间时间戳或处理时间时间戳。对于处理时间窗口，这没有特殊的含义，但是对于事件时间窗口，这连同水印与窗口的交互方式一起，可以以相同的窗口大小进行  [连续的窗口操作](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#consecutive-windowed-operations)。在查看水印如何与窗口交互之后，我们将进行介绍。
+val lateStream = result.getSideOutput(lateOutputTag)
+{% endhighlight %}
+</div>
+</div>
 
-### 水印和窗户的相互作用
+### Late elements considerations
 
-在继续本节之前，您可能需要看一下有关  [事件时间和水印的部分](https://ci.apache.org/projects/flink/flink-docs-release-1.10/dev/event_time.html)。
+When specifying an allowed lateness greater than 0, the window along with its content is kept after the watermark passes
+the end of the window. In these cases, when a late but not dropped element arrives, it could trigger another firing for the
+window. These firings are called `late firings`, as they are triggered by late events and in contrast to the `main firing`
+which is the first firing of the window. In case of session windows, late firings can further lead to merging of windows,
+as they may "bridge" the gap between two pre-existing, unmerged windows.
 
-当水印到达窗口运算符时，将触发两件事：
+<span class="label label-info">Attention</span> You should be aware that the elements emitted by a late firing should be treated as updated results of a previous computation, i.e., your data stream will contain multiple results for the same computation. Depending on your application, you need to take these duplicated results into account or deduplicate them.
 
-- 水印会触发所有最大时间戳（即*end-stamp-1*）小于新水印的所有窗口的计算
-- 水印被（按原样）转发给下游操作
+## Working with window results
 
-直观地，一旦下游操作收到水印后，水印就会“溢出”所有在下游操作中被认为是后期的窗口。
+The result of a windowed operation is again a `DataStream`, no information about the windowed
+operations is retained in the result elements so if you want to keep meta-information about the
+window you have to manually encode that information in the result elements in your
+`ProcessWindowFunction`. The only relevant information that is set on the result elements is the
+element *timestamp*. This is set to the maximum allowed timestamp of the processed window, which
+is *end timestamp - 1*, since the window-end timestamp is exclusive. Note that this is true for both
+event-time windows and processing-time windows. i.e. after a windowed operations elements always
+have a timestamp, but this can be an event-time timestamp or a processing-time timestamp. For
+processing-time windows this has no special implications but for event-time windows this together
+with how watermarks interact with windows enables
+[consecutive windowed operations](#consecutive-windowed-operations) with the same window sizes. We
+will cover this after taking a look how watermarks interact with windows.
 
-### 连续窗口操作
+### Interaction of watermarks and windows
 
-如前所述，计算窗口结果时间戳的方式以及水印与窗口的交互方式可将连续的窗口操作串在一起。当您要执行两个连续的窗口化操作时，如果要使用不同的键，但仍希望来自同一上游窗口的元素最终位于同一下游窗口中，此功能将非常有用。考虑以下示例：
+Before continuing in this section you might want to take a look at our section about
+[event time and watermarks]({% link dev/event_time.md %}).
 
-- [**爪哇**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_java_16)
-- [**斯卡拉**](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#tab_scala_16)
+When watermarks arrive at the window operator this triggers two things:
 
-  DataStream<Integer> input = ...;
+ - the watermark triggers computation of all windows where the maximum timestamp (which is
+ *end-timestamp - 1*) is smaller than the new watermark
+ - the watermark is forwarded (as is) to downstream operations
 
-  DataStream<Integer> resultsPerKey = input
-  .keyBy(<key selector>)
-  .window(TumblingEventTimeWindows.of(Time.seconds(5)))
-  .reduce(new Summer());
+Intuitively, a watermark "flushes" out any windows that would be considered late in downstream
+operations once they receive that watermark.
 
-  DataStream<Integer> globalResults = resultsPerKey
-  .windowAll(TumblingEventTimeWindows.of(Time.seconds(5)))
-  .process(new TopKWindowFunction());
+### Consecutive windowed operations
 
-在此示例中，`[0, 5)`第一个操作的时间窗口结果也将`[0, 5)`在随后的窗口化操作的时间窗口中结束。这允许计算每个键的总和，然后在第二个操作中计算同一窗口内的前 k 个元素。
+As mentioned before, the way the timestamp of windowed results is computed and how watermarks
+interact with windows allows stringing together consecutive windowed operations. This can be useful
+when you want to do two consecutive windowed operations where you want to use different keys but
+still want elements from the same upstream window to end up in the same downstream window. Consider
+this example:
 
-## 有用的州规模考虑
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
+DataStream<Integer> input = ...;
 
-Windows 可以定义很长时间（例如几天，几周或几个月），因此会累积很大的状态。在估算窗口计算的存储需求时，需要牢记一些规则：
+DataStream<Integer> resultsPerKey = input
+    .keyBy(<key selector>)
+    .window(TumblingEventTimeWindows.of(Time.seconds(5)))
+    .reduce(new Summer());
 
-1.  Flink 为每个元素所属的窗口创建一个副本。鉴于此，滚动窗口保留每个元素的一个副本（一个元素恰好属于一个窗口，除非它被延迟放置）。相反，滑动窗口会为每个元素创建多个元素，如“ [窗口分配器”](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#window-assigners)部分所述。因此，大小为 1 天的滑动窗口和滑动 1 秒的滑动窗口可能不是一个好主意。
+DataStream<Integer> globalResults = resultsPerKey
+    .windowAll(TumblingEventTimeWindows.of(Time.seconds(5)))
+    .process(new TopKWindowFunction());
 
-2.  `ReduceFunction`，，`AggregateFunction`和`FoldFunction`可以大大减少存储需求，因为它们热切地聚合元素并且每个窗口仅存储一个值。相反，仅使用 a `ProcessWindowFunction`需要累积所有元素。
+{% endhighlight %}
+</div>
 
-3.  使用`Evictor`防止了任何预聚合，作为窗口的所有元件必须通过逐出器施加的计算（参见前通过[逐出器](https://ci.apache.org/projects/flink/flink-docs-release-1.10/zh/dev/stream/operators/windows.html#evictors)）。
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
+val input: DataStream[Int] = ...
+
+val resultsPerKey = input
+    .keyBy(<key selector>)
+    .window(TumblingEventTimeWindows.of(Time.seconds(5)))
+    .reduce(new Summer())
+
+val globalResults = resultsPerKey
+    .windowAll(TumblingEventTimeWindows.of(Time.seconds(5)))
+    .process(new TopKWindowFunction())
+{% endhighlight %}
+</div>
+</div>
+
+In this example, the results for time window `[0, 5)` from the first operation will also end up in
+time window `[0, 5)` in the subsequent windowed operation. This allows calculating a sum per key
+and then calculating the top-k elements within the same window in the second operation.
+
+## Useful state size considerations
+
+Windows can be defined over long periods of time (such as days, weeks, or months) and therefore accumulate very large state. There are a couple of rules to keep in mind when estimating the storage requirements of your windowing computation:
+
+1. Flink creates one copy of each element per window to which it belongs. Given this, tumbling windows keep one copy of each element (an element belongs to exactly one window unless it is dropped late). In contrast, sliding windows create several of each element, as explained in the [Window Assigners](#window-assigners) section. Hence, a sliding window of size 1 day and slide 1 second might not be a good idea.
+
+2. `ReduceFunction` and `AggregateFunction` can significantly reduce the storage requirements, as they eagerly aggregate elements and store only one value per window. In contrast, just using a `ProcessWindowFunction` requires accumulating all elements.
+
+3. Using an `Evictor` prevents any pre-aggregation, as all the elements of a window have to be passed through the evictor before applying the computation (see [Evictors](#evictors)).
+
+{% top %}

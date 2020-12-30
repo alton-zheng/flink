@@ -1,53 +1,19 @@
----
-title: 'Detecting Patterns in Tables'
-nav-parent_id: streaming_tableapi
-nav-title: 'Detecting Patterns'
-nav-pos: 5
-is_beta: true
----
-<!--
-Licensed to the Apache Software Foundation (ASF) under one
-or more contributor license agreements.  See the NOTICE file
-distributed with this work for additional information
-regarding copyright ownership.  The ASF licenses this file
-to you under the Apache License, Version 2.0 (the
-"License"); you may not use this file except in compliance
-with the License.  You may obtain a copy of the License at
+# 表中的模式检测
 
-  http://www.apache.org/licenses/LICENSE-2.0
+搜索一组事件模式（event pattern）是一种常见的用例，尤其是在数据流情景中。Flink 提供[复杂事件处理（CEP）库](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/libs/cep.html)，该库允许在事件流中进行模式检测。此外，Flink 的 SQL API 提供了一种关系式的查询表达方式，其中包含大量内置函数和基于规则的优化，可以开箱即用。
 
-Unless required by applicable law or agreed to in writing,
-software distributed under the License is distributed on an
-"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-KIND, either express or implied.  See the License for the
-specific language governing permissions and limitations
-under the License.
--->
+2016 年 12 月，国际标准化组织（ISO）发布了新版本的 SQL 标准，其中包括在 *SQL 中的行模式识别（Row Pattern Recognition in SQL）*([ISO/IEC TR 19075-5:2016](https://standards.iso.org/ittf/PubliclyAvailableStandards/c065143_ISO_IEC_TR_19075-5_2016.zip))。它允许 Flink 使用 `MATCH_RECOGNIZE` 子句融合 CEP 和 SQL API，以便在 SQL 中进行复杂事件处理。
 
-It is a common use case to search for a set of event patterns, especially in case of data streams.
-Flink comes with a [complex event processing (CEP) library]({{ site.baseurl }}/dev/libs/cep.html)
-which allows for pattern detection in event streams. Furthermore, Flink's SQL API provides a
-relational way of expressing queries with a large set of built-in functions and rule-based
-optimizations that can be used out of the box.
+`MATCH_RECOGNIZE` 子句启用以下任务：
 
-In December 2016, the International Organization for Standardization (ISO) released a new version
-of the SQL standard which includes _Row Pattern Recognition in SQL_
-([ISO/IEC TR 19075-5:2016](https://standards.iso.org/ittf/PubliclyAvailableStandards/c065143_ISO_IEC_TR_19075-5_2016.zip)).
-It allows Flink to consolidate CEP and SQL API using the `MATCH_RECOGNIZE` clause for complex event
-processing in SQL.
+- 使用 `PARTITION BY` 和 `ORDER BY` 子句对数据进行逻辑分区和排序。
+- 使用 `PATTERN` 子句定义要查找的行模式。这些模式使用类似于正则表达式的语法。
+- 在 `DEFINE` 子句中指定行模式变量的逻辑组合。
+- measures 是指在 `MEASURES` 子句中定义的表达式，这些表达式可用于 SQL 查询中的其他部分。
 
-A `MATCH_RECOGNIZE` clause enables the following tasks:
-* Logically partition and order the data that is used with the `PARTITION BY` and `ORDER BY`
-  clauses.
-* Define patterns of rows to seek using the `PATTERN` clause. These patterns use a syntax similar to
-  that of regular expressions.
-* The logical components of the row pattern variables are specified in the `DEFINE` clause.
-* Define measures, which are expressions usable in other parts of the SQL query, in the `MEASURES`
-  clause.
+下面的示例演示了基本模式识别的语法：
 
-The following example illustrates the syntax for basic pattern recognition:
-
-{% highlight sql %}
+```
 SELECT T.aid, T.bid, T.cid
 FROM MyTable
     MATCH_RECOGNIZE (
@@ -63,83 +29,89 @@ FROM MyTable
         B AS name = 'b',
         C AS name = 'c'
     ) AS T
-{% endhighlight %}
+```
 
-This page will explain each keyword in more detail and will illustrate more complex examples.
+本页将更详细地解释每个关键字，并演示说明更复杂的示例。
 
-<span class="label label-danger">Attention</span> Flink's implementation of the `MATCH_RECOGNIZE`
-clause is a subset of the full standard. Only those features documented in the following sections
-are supported. Since the development is still in an early phase, please also take a look at the
-[known limitations](#known-limitations).
+**注意** Flink 的 `MATCH_RECOGNIZE` 子句实现是一个完整标准子集。仅支持以下部分中记录的功能。基于社区反馈，可能会支持其他功能，请查看[已知的局限](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#known-limitations)。
 
-* This will be replaced by the TOC
-{:toc}
+- 介绍和示例
+  - [安装指南](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#安装指南)
+  - [SQL 语义](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#sql-语义)
+  - [示例](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#示例)
+- [分区](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#分区)
+- [事件顺序](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#事件顺序)
+- Define & Measures
+  - [Aggregations](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#aggregations)
+- 定义模式
+  - [贪婪量词和勉强量词](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#贪婪量词和勉强量词)
+  - [时间约束](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#时间约束)
+- [输出方式](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#输出方式)
+- 模式导航
+  - [引用模式变量](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#引用模式变量)
+  - [Logical Offsets](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#logical-offsets)
+- [匹配后的策略](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#匹配后的策略)
+- [时间属性](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#时间属性)
+- [控制内存消耗](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#控制内存消耗)
+- [已知的局限](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#已知的局限)
 
-Introduction and Examples
--------------------------
 
-### Installation Guide
 
-The pattern recognition feature uses the Apache Flink's CEP library internally. In order to be able
-to use the `MATCH_RECOGNIZE` clause, the library needs to be added as a dependency to your Maven
-project.
+## 介绍和示例
 
-{% highlight xml %}
+
+
+### 安装指南
+
+模式识别特性使用 Apache Flink 内部的 CEP 库。为了能够使用 `MATCH_RECOGNIZE` 子句，需要将库作为依赖项添加到 Maven 项目中。
+
+```
 <dependency>
   <groupId>org.apache.flink</groupId>
-  <artifactId>flink-cep{{ site.scala_version_suffix }}</artifactId>
-  <version>{{ site.version }}</version>
+  <artifactId>flink-cep_2.11</artifactId>
+  <version>1.12.0</version>
 </dependency>
-{% endhighlight %}
+```
 
-Alternatively, you can also add the dependency to the cluster classpath (see the
-[dependency section]({{ site.baseurl}}/dev/projectsetup/dependencies.html) for more information).
+或者，也可以将依赖项添加到集群的 classpath（查看 [dependency section](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/project-configuration.html) 获取更多相关依赖信息）。
 
-If you want to use the `MATCH_RECOGNIZE` clause in the
-[SQL Client]({{ site.baseurl}}/dev/table/sqlClient.html), you don't have to do anything as all the
-dependencies are included by default.
+如果你想在 [SQL Client](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/sqlClient.html) 中使用 `MATCH_RECOGNIZE` 子句，你无需执行任何操作，因为默认情况下包含所有依赖项。
 
-### SQL Semantics
 
-Every `MATCH_RECOGNIZE` query consists of the following clauses:
 
-* [PARTITION BY](#partitioning) - defines the logical partitioning of the table; similar to a
-  `GROUP BY` operation.
-* [ORDER BY](#order-of-events) - specifies how the incoming rows should be ordered; this is
-  essential as patterns depend on an order.
-* [MEASURES](#define--measures) - defines output of the clause; similar to a `SELECT` clause.
-* [ONE ROW PER MATCH](#output-mode) - output mode which defines how many rows per match should be
-  produced.
-* [AFTER MATCH SKIP](#after-match-strategy) - specifies where the next match should start; this is
-  also a way to control how many distinct matches a single event can belong to.
-* [PATTERN](#defining-a-pattern) - allows constructing patterns that will be searched for using a
-  _regular expression_-like syntax.
-* [DEFINE](#define--measures) - this section defines the conditions that the pattern variables must
-  satisfy.
+### SQL 语义
 
-<span class="label label-danger">Attention</span> Currently, the `MATCH_RECOGNIZE` clause can only
-be applied to an [append table](dynamic_tables.html#update-and-append-queries). Furthermore, it
-always produces an append table as well.
+每个 `MATCH_RECOGNIZE` 查询都包含以下子句：
 
-### Examples
+- [PARTITION BY](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#partitioning) - 定义表的逻辑分区；类似于 `GROUP BY` 操作。
+- [ORDER BY](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#order-of-events) - 指定传入行的排序方式；这是必须的，因为模式依赖于顺序。
+- [MEASURES](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#define--measures) - 定义子句的输出；类似于 `SELECT` 子句。
+- [ONE ROW PER MATCH](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#output-mode) - 输出方式，定义每个匹配项应产生多少行。
+- [AFTER MATCH SKIP](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#after-match-strategy) - 指定下一个匹配的开始位置；这也是控制单个事件可以属于多少个不同匹配项的方法。
+- [PATTERN](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#defining-a-pattern) - 允许使用类似于 *正则表达式* 的语法构造搜索的模式。
+- [DEFINE](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#define--measures) - 本部分定义了模式变量必须满足的条件。
 
-For our examples, we assume that a table `Ticker` has been registered. The table contains prices of
-stocks at a particular point in time.
+**注意** 目前，`MATCH_RECOGNIZE` 子句只能应用于[追加表](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/dynamic_tables.html#update-and-append-queries)。此外，它也总是生成一个追加表。
 
-The table has a following schema:
 
-{% highlight text %}
+
+### 示例
+
+对于我们的示例，我们假设已经注册了一个表 `Ticker`。该表包含特定时间点的股票价格。
+
+这张表的 schema 如下：
+
+```
 Ticker
-     |-- symbol: String                           # symbol of the stock
-     |-- price: Long                              # price of the stock
-     |-- tax: Long                                # tax liability of the stock
-     |-- rowtime: TimeIndicatorTypeInfo(rowtime)  # point in time when the change to those values happened
-{% endhighlight %}
+     |-- symbol: String                           # 股票的代号
+     |-- price: Long                              # 股票的价格
+     |-- tax: Long                                # 股票应纳税额
+     |-- rowtime: TimeIndicatorTypeInfo(rowtime)  # 更改这些值的时间点
+```
 
-For simplification, we only consider the incoming data for a single stock `ACME`. A ticker could
-look similar to the following table where rows are continuously appended.
+为了简化，我们只考虑单个股票 `ACME` 的传入数据。Ticker 可以类似于下表，其中的行是连续追加的。
 
-{% highlight text %}
+```
 symbol         rowtime         price    tax
 ======  ====================  ======= =======
 'ACME'  '01-Apr-11 10:00:00'   12      1
@@ -153,12 +125,11 @@ symbol         rowtime         price    tax
 'ACME'  '01-Apr-11 10:00:08'   24      2
 'ACME'  '01-Apr-11 10:00:09'   25      2
 'ACME'  '01-Apr-11 10:00:10'   19      1
-{% endhighlight %}
+```
 
-The task is now to find periods of a constantly decreasing price of a single ticker. For this, one
-could write a query like:
+现在的任务是找出一个单一股票价格不断下降的时期。为此，可以编写如下查询：
 
-{% highlight sql %}
+```
 SELECT *
 FROM Ticker
     MATCH_RECOGNIZE (
@@ -178,103 +149,69 @@ FROM Ticker
             PRICE_UP AS
                 PRICE_UP.price > LAST(PRICE_DOWN.price, 1)
     ) MR;
-{% endhighlight %}
+```
 
-The query partitions the `Ticker` table by the `symbol` column and orders it by the `rowtime`
-time attribute.
+此查询将 `Ticker` 表按照 `symbol` 列进行分区并按照 `rowtime` 属性进行排序。
 
-The `PATTERN` clause specifies that we are interested in a pattern with a starting event `START_ROW`
-that is followed by one or more `PRICE_DOWN` events and concluded with a `PRICE_UP` event. If such
-a pattern can be found, the next pattern match will be seeked at the last `PRICE_UP` event as
-indicated by the `AFTER MATCH SKIP TO LAST` clause.
+`PATTERN` 子句指定我们对以下模式感兴趣：该模式具有开始事件 `START_ROW`，然后是一个或多个 `PRICE_DOWN` 事件，并以 `PRICE_UP` 事件结束。如果可以找到这样的模式，如 `AFTER MATCH SKIP TO LAST` 子句所示，则从最后一个 `PRICE_UP` 事件开始寻找下一个模式匹配。
 
-The `DEFINE` clause specifies the conditions that need to be met for a `PRICE_DOWN` and `PRICE_UP`
-event. Although the `START_ROW` pattern variable is not present it has an implicit condition that
-is evaluated always as `TRUE`.
+`DEFINE` 子句指定 `PRICE_DOWN` 和 `PRICE_UP` 事件需要满足的条件。尽管不存在 `START_ROW` 模式变量，但它具有一个始终被评估为 `TRUE` 隐式条件。
 
-A pattern variable `PRICE_DOWN` is defined as a row with a price that is smaller than the price of
-the last row that met the `PRICE_DOWN` condition. For the initial case or when there is no last row
-that met the `PRICE_DOWN` condition, the price of the row should be smaller than the price of the
-preceding row in the pattern (referenced by `START_ROW`).
+模式变量 `PRICE_DOWN` 定义为价格小于满足 `PRICE_DOWN` 条件的最后一行。对于初始情况或没有满足 `PRICE_DOWN` 条件的最后一行时，该行的价格应小于该模式中前一行（由 `START_ROW` 引用）的价格。
 
-A pattern variable `PRICE_UP` is defined as a row with a price that is larger than the price of the
-last row that met the `PRICE_DOWN` condition.
+模式变量 `PRICE_UP` 定义为价格大于满足 `PRICE_DOWN` 条件的最后一行。
 
-This query produces a summary row for each period in which the price of a stock was continuously
-decreasing.
+此查询为股票价格持续下跌的每个期间生成摘要行。
 
-The exact representation of the output rows is defined in the `MEASURES` part of the query. The
-number of output rows is defined by the `ONE ROW PER MATCH` output mode.
+在查询的 `MEASURES` 子句部分定义确切的输出行信息。输出行数由 `ONE ROW PER MATCH` 输出方式定义。
 
-{% highlight text %}
+```
  symbol       start_tstamp       bottom_tstamp         end_tstamp
 =========  ==================  ==================  ==================
 ACME       01-APR-11 10:00:04  01-APR-11 10:00:07  01-APR-11 10:00:08
-{% endhighlight %}
+```
 
-The resulting row describes a period of falling prices that started at `01-APR-11 10:00:04` and
-achieved the lowest price at `01-APR-11 10:00:07` that increased again at `01-APR-11 10:00:08`.
+该行结果描述了从 `01-APR-11 10:00:04` 开始的价格下跌期，在 `01-APR-11 10:00:07` 达到最低价格，到 `01-APR-11 10:00:08` 再次上涨。
 
-Partitioning
-------------
 
-It is possible to look for patterns in partitioned data, e.g., trends for a single ticker or a
-particular user. This can be expressed using the `PARTITION BY` clause. The clause is similar to
-using `GROUP BY` for aggregations.
 
-<span class="label label-danger">Attention</span> It is highly advised to partition the incoming
-data because otherwise the `MATCH_RECOGNIZE` clause will be translated into a non-parallel operator
-to ensure global ordering.
+## 分区
 
-Order of Events
----------------
+可以在分区数据中寻找模式，例如单个股票行情或特定用户的趋势。这可以用 `PARTITION BY` 子句来表示。该子句类似于对 aggregation 使用 `GROUP BY`。
 
-Apache Flink allows for searching for patterns based on time; either
-[processing time or event time](time_attributes.html).
+**注意** 强烈建议对传入的数据进行分区，否则 `MATCH_RECOGNIZE` 子句将被转换为非并行算子，以确保全局排序。
 
-In case of event time, the events are sorted before they are passed to the internal pattern state
-machine. As a consequence, the produced output will be correct regardless of the order in which
-rows are appended to the table. Instead, the pattern is evaluated in the order specified by the
-time contained in each row.
 
-The `MATCH_RECOGNIZE` clause assumes a [time attribute](time_attributes.html) with ascending
-ordering as the first argument to `ORDER BY` clause.
 
-For the example `Ticker` table, a definition like `ORDER BY rowtime ASC, price DESC` is valid but
-`ORDER BY price, rowtime` or `ORDER BY rowtime DESC, price ASC` is not.
+## 事件顺序
 
-Define & Measures
------------------
+Apache Flink 可以根据时间（[处理时间或者事件时间](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/time_attributes.html)）进行模式搜索。
 
-The `DEFINE` and `MEASURES` keywords have similar meanings to the `WHERE` and `SELECT` clauses in a
-simple SQL query.
+如果是事件时间，则在将事件传递到内部模式状态机之前对其进行排序。所以，无论行添加到表的顺序如何，生成的输出都是正确的。而模式是按照每行中所包含的时间指定顺序计算的。
 
-The `MEASURES` clause defines what will be included in the output of a matching pattern. It can
-project columns and define expressions for evaluation. The number of produced rows depends on the
-[output mode](#output-mode) setting.
+`MATCH_RECOGNIZE` 子句假定升序的 [时间属性](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/time_attributes.html) 是 `ORDER BY` 子句的第一个参数。
 
-The `DEFINE` clause specifies conditions that rows have to fulfill in order to be classified to a
-corresponding [pattern variable](#defining-a-pattern). If a condition is not defined for a pattern
-variable, a default condition will be used which evaluates to `true` for every row.
+对于示例 `Ticker` 表，诸如 `ORDER BY rowtime ASC, price DESC` 的定义是有效的，但 `ORDER BY price, rowtime` 或者 `ORDER BY rowtime DESC, price ASC` 是无效的。
 
-For a more detailed explanation about expressions that can be used in those clauses, please have a
-look at the [event stream navigation](#pattern-navigation) section.
+## Define & Measures
+
+`DEFINE` 和 `MEASURES` 关键字与简单 SQL 查询中的 `WHERE` 和 `SELECT` 子句具有相近的含义。
+
+`MEASURES` 子句定义匹配模式的输出中要包含哪些内容。它可以投影列并定义表达式进行计算。产生的行数取决于[输出方式](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#output-mode)设置。
+
+`DEFINE` 子句指定行必须满足的条件才能被分类到相应的[模式变量](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#defining-a-pattern)。如果没有为模式变量定义条件，则将对每一行使用计算结果为 `true` 的默认条件。
+
+有关在这些子句中可使用的表达式的更详细的说明，请查看[事件流导航](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#pattern-navigation)部分。
 
 ### Aggregations
 
-Aggregations can be used in `DEFINE` and `MEASURES` clauses. Both
-[built-in]({{ site.baseurl }}/dev/table/functions/systemFunctions.html) and custom
-[user defined]({{ site.baseurl }}/dev/table/functions/udfs.html) functions are supported.
+Aggregations 可以在 `DEFINE` 和 `MEASURES` 子句中使用。支持[内置函数](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/functions/systemFunctions.html)和[用户自定义函数](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/functions/udfs.html)。
 
-Aggregate functions are applied to each subset of rows mapped to a match. In order to understand
-how those subsets are evaluated have a look at the [event stream navigation](#pattern-navigation)
-section.
+对相应匹配项的行子集可以使用 Aggregate functions。请查看[事件流导航](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#pattern-navigation)部分以了解如何计算这些子集。
 
-The task of the following example is to find the longest period of time for which the average price
-of a ticker did not go below certain threshold. It shows how expressible `MATCH_RECOGNIZE` can
-become with aggregations. This task can be performed with the following query:
+下面这个示例的任务是找出股票平均价格没有低于某个阈值的最长时间段。它展示了 `MATCH_RECOGNIZE` 在 aggregation 中的可表达性。可以使用以下查询执行此任务：
 
-{% highlight sql %}
+```
 SELECT *
 FROM Ticker
     MATCH_RECOGNIZE (
@@ -290,11 +227,11 @@ FROM Ticker
         DEFINE
             A AS AVG(A.price) < 15
     ) MR;
-{% endhighlight %}
+```
 
-Given this query and following input values:
+给定此查询和以下输入值：
 
-{% highlight text %}
+```
 symbol         rowtime         price    tax
 ======  ====================  ======= =======
 'ACME'  '01-Apr-11 10:00:00'   12      1
@@ -309,68 +246,64 @@ symbol         rowtime         price    tax
 'ACME'  '01-Apr-11 10:00:09'   25      2
 'ACME'  '01-Apr-11 10:00:10'   25      1
 'ACME'  '01-Apr-11 10:00:11'   30      1
-{% endhighlight %}
+```
 
-The query will accumulate events as part of the pattern variable `A` as long as the average price
-of them does not exceed `15`. For example, such a limit exceeding happens at `01-Apr-11 10:00:04`.
-The following period exceeds the average price of `15` again at `01-Apr-11 10:00:11`. Thus the
-results for said query will be:
+只要事件的平均价格不超过 `15`，查询就会将事件作为模式变量 `A` 的一部分进行累积。 例如，这种限制发生在 `01-Apr-11 10：00：04`。接下来的时间段在 `01-Apr-11 10:00:11` 再次超过平均价格 `15`。因此，所述查询的结果将是：
 
-{% highlight text %}
+```
  symbol       start_tstamp       end_tstamp          avgPrice
 =========  ==================  ==================  ============
 ACME       01-APR-11 10:00:00  01-APR-11 10:00:03     14.5
 ACME       01-APR-11 10:00:05  01-APR-11 10:00:10     13.5
-{% endhighlight %}
+```
 
-<span class="label label-info">Note</span> Aggregations can be applied to expressions, but only if
-they reference a single pattern variable. Thus `SUM(A.price * A.tax)` is a valid one, but
-`AVG(A.price * B.tax)` is not.
+**注意** Aggregation 可以应用于表达式，但前提是它们引用单个模式变量。因此，`SUM(A.price * A.tax)` 是有效的，而 `AVG(A.price * B.tax)` 则是无效的。
 
-<span class="label label-danger">Attention</span> `DISTINCT` aggregations are not supported.
+**注意** 不支持 `DISTINCT` aggregation。
 
-Defining a Pattern
-------------------
 
-The `MATCH_RECOGNIZE` clause allows users to search for patterns in event streams using a powerful
-and expressive syntax that is somewhat similar to the widespread regular expression syntax.
 
-Every pattern is constructed from basic building blocks, called _pattern variables_, to which
-operators (quantifiers and other modifiers) can be applied. The whole pattern must be enclosed in
-brackets.
+## 定义模式
 
-An example pattern could look like:
+`MATCH_RECOGNIZE` 子句允许用户在事件流中使用功能强大、表达力强的语法搜索模式，这种语法与广泛使用的正则表达式语法有些相似。
 
-{% highlight sql %}
+每个模式都是由基本的构建块构造的，称为 *模式变量*，可以应用算子（量词和其他修饰符）到这些模块中。整个模式必须用括号括起来。
+
+示例模式如下所示：
+
+```
 PATTERN (A B+ C* D)
-{% endhighlight %}
+```
 
-One may use the following operators:
+可以使用以下算子：
 
-* _Concatenation_ - a pattern like `(A B)` means that the contiguity is strict between `A` and `B`.
-  Therefore, there can be no rows that were not mapped to `A` or `B` in between.
-* _Quantifiers_ - modify the number of rows that can be mapped to the pattern variable.
-  * `*` — _0_ or more rows
-  * `+` — _1_ or more rows
-  * `?` — _0_ or _1_ rows
-  * `{ n }` — exactly _n_ rows (_n > 0_)
-  * `{ n, }` — _n_ or more rows (_n ≥ 0_)
-  * `{ n, m }` — between _n_ and _m_ (inclusive) rows (_0 ≤ n ≤ m, 0 < m_)
-  * `{ , m }` — between _0_ and _m_ (inclusive) rows (_m > 0_)
+- *Concatenation* - 像 `(A B)` 这样的模式意味着 `A` 和 `B` 之间的连接是严格的。因此，在它们之间不能存在没有映射到 `A` 或 `B` 的行。
 
-<span class="label label-danger">Attention</span> Patterns that can potentially produce an empty
-match are not supported. Examples of such patterns are `PATTERN (A*)`, `PATTERN  (A? B*)`,
-`PATTERN (A{0,} B{0,} C*)`, etc.
+- Quantifiers
 
-### Greedy & Reluctant Quantifiers
+   
 
-Each quantifier can be either _greedy_ (default behavior) or _reluctant_. Greedy quantifiers try to
-match as many rows as possible while reluctant quantifiers try to match as few as possible.
+  \- 修改可以映射到模式变量的行数。
 
-In order to illustrate the difference, one can view the following example with a query where a
-greedy quantifier is applied to the `B` variable:
+  - `*` — *0* 或者多行
+  - `+` — *1* 或者多行
+  - `?` — *0* 或者 *1* 行
+  - `{ n }` — 严格 *n* 行（*n > 0*）
+  - `{ n, }` — *n* 或者更多行（*n ≥ 0*）
+  - `{ n, m }` — 在 *n* 到 *m*（包含）行之间（*0 ≤ n ≤ m，0 < m*）
+  - `{ , m }` — 在 *0* 到 *m*（包含）行之间（*m > 0*）
 
-{% highlight sql %}
+**注意** 不支持可能产生空匹配的模式。此类模式的示例如 `PATTERN (A*)`，`PATTERN (A? B*)`，`PATTERN (A{0,} B{0,} C*)` 等。
+
+
+
+### 贪婪量词和勉强量词
+
+每一个量词可以是 *贪婪*（默认行为）的或者 *勉强* 的。贪婪的量词尝试匹配尽可能多的行，而勉强的量词则尝试匹配尽可能少的行。
+
+为了说明区别，可以通过查询查看以下示例，其中贪婪量词应用于 `B` 变量：
+
+```
 SELECT *
 FROM Ticker
     MATCH_RECOGNIZE(
@@ -386,11 +319,11 @@ FROM Ticker
             B AS B.price < 15,
             C AS C.price > 12
     )
-{% endhighlight %}
+```
 
-Given we have the following input:
+假设我们有以下输入：
 
-{% highlight text %}
+```
  symbol  tax   price          rowtime
 ======= ===== ======== =====================
  XYZ     1     10       2018-09-17 10:00:02
@@ -399,68 +332,56 @@ Given we have the following input:
  XYZ     2     13       2018-09-17 10:00:05
  XYZ     1     14       2018-09-17 10:00:06
  XYZ     2     16       2018-09-17 10:00:07
-{% endhighlight %}
+```
 
-The pattern above will produce the following output:
+上面的模式将产生以下输出：
 
-{% highlight text %}
+```
  symbol   lastPrice
 ======== ===========
  XYZ      16
-{% endhighlight %}
+```
 
-The same query where `B*` is modified to `B*?`, which means that `B*` should be reluctant, will
-produce:
+将 `B*` 修改为 `B*?` 的同一查询，这意味着 `B*` 应该是勉强的，将产生：
 
-{% highlight text %}
+```
  symbol   lastPrice
 ======== ===========
  XYZ      13
  XYZ      16
-{% endhighlight %}
+```
 
-The pattern variable `B` matches only to the row with price `12` instead of swallowing the rows
-with prices `12`, `13`, and `14`.
+模式变量 `B` 只匹配价格为 `12` 的行，而不是包含价格为 `12`、`13` 和 `14` 的行。
 
-<span class="label label-danger">Attention</span> It is not possible to use a greedy quantifier for
-the last variable of a pattern. Thus, a pattern like `(A B*)` is not allowed. This can be easily
-worked around by introducing an artificial state (e.g. `C`) that has a negated condition of `B`. So
-you could use a query like:
+**注意** 模式的最后一个变量不能使用贪婪量词。因此，不允许使用类似 `(A B*)` 的模式。通过引入条件为 `B` 的人工状态（例如 `C`），可以轻松解决此问题。因此，你可以使用类似以下的查询：
 
-{% highlight sql %}
+```
 PATTERN (A B* C)
 DEFINE
     A AS condA(),
     B AS condB(),
     C AS NOT condB()
-{% endhighlight %}
+```
 
-<span class="label label-danger">Attention</span> The optional reluctant quantifier (`A??` or
-`A{0,1}?`) is not supported right now.
+**注意** 目前不支持可选的勉强量词（`A??` 或者 `A{0,1}?`）。
 
-### Time constraint
 
-Especially for streaming use cases, it is often required that a pattern finishes within a given
-period of time. This allows for limiting the overall state size that Flink has to maintain
-internally, even in case of greedy quantifiers.
 
-Therefore, Flink SQL supports the additional (non-standard SQL) `WITHIN` clause for defining a time
-constraint for a pattern. The clause can be defined after the `PATTERN` clause and takes an
-interval of millisecond resolution.
+### 时间约束
 
-If the time between the first and last event of a potential match is longer than the given value,
-such a match will not be appended to the result table.
+特别是对于流的使用场景，通常需要在给定的时间内完成模式。这要求限制住 Flink 在内部必须保持的状态总体大小（即已经过期的状态就不需要再维护了），即使在贪婪的量词的情况下也是如此。
 
-<span class="label label-info">Note</span> It is generally encouraged to use the `WITHIN` clause as
-it helps Flink with efficient memory management. Underlying state can be pruned once the threshold
-is reached.
+因此，Flink SQL 支持附加的（非标准 SQL）`WITHIN` 子句来定义模式的时间约束。子句可以在 `PATTERN` 子句之后定义，并以毫秒为间隔进行解析。
 
-<span class="label label-danger">Attention</span> However, the `WITHIN` clause is not part of the
-SQL standard. The recommended way of dealing with time constraints might change in the future.
+如果潜在匹配的第一个和最后一个事件之间的时间长于给定值，则不会将这种匹配追加到结果表中。
 
-The use of the `WITHIN` clause is illustrated in the following example query:
+**注意** 通常鼓励使用 `WITHIN` 子句，因为它有助于 Flink 进行有效的内存管理。一旦达到阈值，即可修剪基础状态。
 
-{% highlight sql %}
+**注意** 然而，`WITHIN` 子句不是 SQL 标准的一部分。时间约束处理的方法已被提议将来可能会改变。
+
+下面的示例查询说明了 `WITHIN` 子句的用法：
+
+```
 SELECT *
 FROM Ticker
     MATCH_RECOGNIZE(
@@ -476,13 +397,13 @@ FROM Ticker
             B AS B.price > A.price - 10
             C AS C.price < A.price - 10
     )
-{% endhighlight %}
+```
 
-The query detects a price drop of `10` that happens within an interval of 1 hour.
+该查询检测到在 1 小时的间隔内价格下降了 `10`。
 
-Let's assume the query is used to analyze the following ticker data:
+假设该查询用于分析以下股票数据：
 
-{% highlight text %}
+```
 symbol         rowtime         price    tax
 ======  ====================  ======= =======
 'ACME'  '01-Apr-11 10:00:00'   20      1
@@ -496,40 +417,36 @@ symbol         rowtime         price    tax
 'ACME'  '01-Apr-11 12:40:00'   24      2
 'ACME'  '01-Apr-11 13:00:00'   1       2
 'ACME'  '01-Apr-11 13:20:00'   19      1
-{% endhighlight %}
+```
 
-The query will produce the following results:
+查询将生成以下结果：
 
-{% highlight text %}
+```
 symbol         dropTime         dropDiff
 ======  ====================  =============
 'ACME'  '01-Apr-11 13:00:00'      14
-{% endhighlight %}
+```
 
-The resulting row represents a price drop from `15` (at `01-Apr-11 12:00:00`) to `1` (at
-`01-Apr-11 13:00:00`). The `dropDiff` column contains the price difference.
+结果行代表价格从 `15`（在`01-Apr-11 12:00:00`）下降到 `1`（在`01-Apr-11 13:00:00`）。`dropDiff` 列包含价格差异。
 
-Notice that even though prices also drop by higher values, for example, by `11` (between
-`01-Apr-11 10:00:00` and `01-Apr-11 11:40:00`), the time difference between those two events is
-larger than 1 hour. Thus, they don't produce a match.
+请注意，即使价格也下降了较高的值，例如，下降了 `11`（在 `01-Apr-11 10:00:00` 和 `01-Apr-11 11:40:00` 之间），这两个事件之间的时间差大于 1 小时。因此，它们不会产生匹配。
 
-Output Mode
------------
 
-The _output mode_ describes how many rows should be emitted for every found match. The SQL standard
-describes two modes:
+
+## 输出方式
+
+*输出方式* 描述每个找到的匹配项应该输出多少行。SQL 标准描述了两种方式：
+
 - `ALL ROWS PER MATCH`
-- `ONE ROW PER MATCH`.
+- `ONE ROW PER MATCH`
 
-Currently, the only supported output mode is `ONE ROW PER MATCH` that will always produce one
-output summary row for each found match.
+目前，唯一支持的输出方式是 `ONE ROW PER MATCH`，它将始终为每个找到的匹配项生成一个输出摘要行。
 
-The schema of the output row will be a concatenation of
-`[partitioning columns] + [measures columns]` in that particular order.
+输出行的 schema 将是按特定顺序连接 `[partitioning columns] + [measures columns]`。
 
-The following example shows the output of a query defined as:
+以下示例显示了所定义的查询的输出：
 
-{% highlight sql %}
+```
 SELECT *
 FROM Ticker
     MATCH_RECOGNIZE(
@@ -545,390 +462,185 @@ FROM Ticker
             A AS LAST(A.price, 1) IS NULL OR A.price > LAST(A.price, 1),
             B AS B.price < LAST(A.price)
     )
-{% endhighlight %}
+```
 
-For the following input rows:
+对于以下输入行：
 
-{% highlight text %}
+```
  symbol   tax   price          rowtime
 ======== ===== ======== =====================
  XYZ      1     10       2018-09-17 10:00:02
  XYZ      2     12       2018-09-17 10:00:03
  XYZ      1     13       2018-09-17 10:00:04
  XYZ      2     11       2018-09-17 10:00:05
-{% endhighlight %}
+```
 
-The query will produce the following output:
+该查询将生成以下输出：
 
-{% highlight text %}
+```
  symbol   startPrice   topPrice   lastPrice
 ======== ============ ========== ===========
  XYZ      10           13         11
-{% endhighlight %}
+```
 
-The pattern recognition is partitioned by the `symbol` column. Even though not explicitly mentioned
-in the `MEASURES` clause, the partitioned column is added at the beginning of the result.
+该模式识别由 `symbol` 列分区。即使在 `MEASURES` 子句中未明确提及，分区列仍会添加到结果的开头。
 
-Pattern Navigation
-------------------
 
-The `DEFINE` and `MEASURES` clauses allow for navigating within the list of rows that (potentially)
-match a pattern.
 
-This section discusses this navigation for declaring conditions or producing output results.
+## 模式导航
 
-### Pattern Variable Referencing
+`DEFINE` 和 `MEASURES` 子句允许在（可能）匹配模式的行列表中进行导航。
 
-A _pattern variable reference_ allows a set of rows mapped to a particular pattern variable in the
-`DEFINE` or `MEASURES` clauses to be referenced.
+本节讨论用于声明条件或产生输出结果的导航。
 
-For example, the expression `A.price` describes a set of rows mapped so far to `A` plus the current
-row if we try to match the current row to `A`. If an expression in the `DEFINE`/`MEASURES` clause
-requires a single row (e.g. `A.price` or `A.price > 10`), it selects the last value belonging to
-the corresponding set.
 
-If no pattern variable is specified (e.g. `SUM(price)`), an expression references the default
-pattern variable `*` which references all variables in the pattern. In other words, it creates a
-list of all the rows mapped so far to any variable plus the current row.
 
-#### Example
+### 引用模式变量
 
-For a more thorough example, one can take a look at the following pattern and corresponding
-conditions:
+*引用模式变量* 允许引用一组映射到 `DEFINE` 或 `MEASURES` 子句中特定模式变量的行。
 
-{% highlight sql %}
+例如，如果我们尝试将当前行与 `A` 进行匹配，则表达式 `A.price` 描述了目前为止已映射到 `A` 的一组行加上当前行。如果 `DEFINE`/`MEASURES` 子句中的表达式需要一行（例如 `a.price` 或 `a.price > 10`），它将选择属于相应集合的最后一个值。
+
+如果没有指定模式变量（例如 `SUM(price)`），则表达式引用默认模式变量 `*`，该变量引用模式中的所有变量。换句话说，它创建了一个列表，其中列出了迄今为止映射到任何变量的所有行以及当前行。
+
+
+
+#### 示例
+
+对于更全面的示例，可以查看以下模式和相应的条件：
+
+```
 PATTERN (A B+)
 DEFINE
-  A AS A.price > 10,
+  A AS A.price >= 10,
   B AS B.price > A.price AND SUM(price) < 100 AND SUM(B.price) < 80
-{% endhighlight %}
+```
 
-The following table describes how those conditions are evaluated for each incoming event.
+下表描述了如何为每个传入事件计算这些条件。
 
-The table consists of the following columns:
-  * `#` - the row identifier that uniquely identifies an incoming row in the lists
-    `[A.price]`/`[B.price]`/`[price]`.
-  * `price` - the price of the incoming row.
-  * `[A.price]`/`[B.price]`/`[price]` - describe lists of rows which are used in the `DEFINE`
-    clause to evaluate conditions.
-  * `Classifier` - the classifier of the current row which indicates the pattern variable the row
-    is mapped to.
-  * `A.price`/`B.price`/`SUM(price)`/`SUM(B.price)` - describes the result after those expressions
-    have been evaluated.
+该表由以下列组成：
 
-<table class="table table-bordered">
-  <thead>
-    <tr>
-      <th>#</th>
-      <th>price</th>
-      <th>Classifier</th>
-      <th>[A.price]</th>
-      <th>[B.price]</th>
-      <th>[price]</th>
-      <th>A.price</th>
-      <th>B.price</th>
-      <th>SUM(price)</th>
-      <th>SUM(B.price)</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>#1</td>
-      <td>10</td>
-      <td>-&gt; A</td>
-      <td>#1</td>
-      <td>-</td>
-      <td>-</td>
-      <td>10</td>
-      <td>-</td>
-      <td>-</td>
-      <td>-</td>
-    </tr>
-    <tr>
-      <td>#2</td>
-      <td>15</td>
-      <td>-&gt; B</td>
-      <td>#1</td>
-      <td>#2</td>
-      <td>#1, #2</td>
-      <td>10</td>
-      <td>15</td>
-      <td>25</td>
-      <td>15</td>
-    </tr>
-    <tr>
-      <td>#3</td>
-      <td>20</td>
-      <td>-&gt; B</td>
-      <td>#1</td>
-      <td>#2, #3</td>
-      <td>#1, #2, #3</td>
-      <td>10</td>
-      <td>20</td>
-      <td>45</td>
-      <td>35</td>
-    </tr>
-    <tr>
-      <td>#4</td>
-      <td>31</td>
-      <td>-&gt; B</td>
-      <td>#1</td>
-      <td>#2, #3, #4</td>
-      <td>#1, #2, #3, #4</td>
-      <td>10</td>
-      <td>31</td>
-      <td>76</td>
-      <td>66</td>
-    </tr>
-    <tr>
-      <td>#5</td>
-      <td>35</td>
-      <td></td>
-      <td>#1</td>
-      <td>#2, #3, #4, #5</td>
-      <td>#1, #2, #3, #4, #5</td>
-      <td>10</td>
-      <td>35</td>
-      <td>111</td>
-      <td>101</td>
-    </tr>
-  </tbody>
-</table>
+- `#` - 行标识符，用于唯一标识列表中的传入行 `[A.price]`/`[B.price]`/`[price]`。
+- `price` - 传入行的价格。
+- `[A.price]`/`[B.price]`/`[price]` - 描述 `DEFINE` 子句中用于计算条件的行列表。
+- `Classifier` - 当前行的分类器，指示该行映射到的模式变量。
+- `A.price`/`B.price`/`SUM(price)`/`SUM(B.price)` - 描述了这些表达式求值后的结果。
 
-As can be seen in the table, the first row is mapped to pattern variable `A` and subsequent rows
-are mapped to pattern variable `B`. However, the last row does not fulfill the `B` condition
-because the sum over all mapped rows `SUM(price)` and the sum over all rows in `B` exceed the
-specified thresholds.
+|  #   | price | Classifier | [A.price] |   [B.price]    |      [price]       | A.price | B.price | SUM(price) | SUM(B.price) |
+| :--: | :---: | :--------: | :-------: | :------------: | :----------------: | :-----: | :-----: | :--------: | :----------: |
+|  #1  |  10   |    -> A    |    #1     |       -        |         -          |   10    |    -    |     -      |      -       |
+|  #2  |  15   |    -> B    |    #1     |       #2       |       #1, #2       |   10    |   15    |     25     |      15      |
+|  #3  |  20   |    -> B    |    #1     |     #2, #3     |     #1, #2, #3     |   10    |   20    |     45     |      35      |
+|  #4  |  31   |    -> B    |    #1     |   #2, #3, #4   |   #1, #2, #3, #4   |   10    |   31    |     76     |      66      |
+|  #5  |  35   |            |    #1     | #2, #3, #4, #5 | #1, #2, #3, #4, #5 |   10    |   35    |    111     |     101      |
+
+从表中可以看出，第一行映射到模式变量 `A`，随后的行映射到模式变量 `B`。但是，最后一行不满足 `B` 条件，因为所有映射行 `SUM(price)` 的总和与 `B` 中所有行的总和都超过了指定的阈值。
 
 ### Logical Offsets
 
-_Logical offsets_ enable navigation within the events that were mapped to a particular pattern
-variable. This can be expressed with two corresponding functions:
+*Logical offsets* 在映射到指定模式变量的事件启用导航。这可以用两个相应的函数表示：
 
-<table class="table table-bordered">
-  <thead>
-    <tr>
-      <th class="text-left" style="width: 40%">Offset functions</th>
-      <th class="text-center">Description</th>
-    </tr>
-  </thead>
-  <tbody>
-  <tr>
-    <td>
-{% highlight text %}
-LAST(variable.field, n)
-{% endhighlight %}
-    </td>
-    <td>
-      <p>Returns the value of the field from the event that was mapped to the <i>n</i>-th
-      <i>last</i> element of the variable. The counting starts at the last element mapped.</p>
-    </td>
-  </tr>
-  <tr>
-    <td>
-{% highlight text %}
-FIRST(variable.field, n)
-{% endhighlight %}
-    </td>
-    <td>
-      <p>Returns the value of the field from the event that was mapped to the <i>n</i>-th element
-      of the variable. The counting starts at the first element mapped.</p>
-    </td>
-  </tr>
-  </tbody>
-</table>
+| Offset functions           |                             描述                             |
+| :------------------------- | :----------------------------------------------------------: |
+| `LAST(variable.field, n)`  | 返回映射到变量最后 n 个元素的事件中的字段值。计数从映射的最后一个元素开始。 |
+| `FIRST(variable.field, n)` | 返回映射到变量的第 *n* 个元素的事件中的字段值。计数从映射的第一个元素开始。 |
 
-#### Examples
 
-For a more thorough example, one can take a look at the following pattern and corresponding
-conditions:
 
-{% highlight sql %}
+#### 示例
+
+对于更全面的示例，可以参考以下模式和相应的条件：
+
+```
 PATTERN (A B+)
 DEFINE
-  A AS A.price > 10,
+  A AS A.price >= 10,
   B AS (LAST(B.price, 1) IS NULL OR B.price > LAST(B.price, 1)) AND
        (LAST(B.price, 2) IS NULL OR B.price > 2 * LAST(B.price, 2))
-{% endhighlight %}
+```
 
-The following table describes how those conditions are evaluated for each incoming event.
+下表描述了如何为每个传入事件计算这些条件。
 
-The table consists of the following columns:
-  * `price` - the price of the incoming row.
-  * `Classifier` - the classifier of the current row which indicates the pattern variable the row
-    is mapped to.
-  * `LAST(B.price, 1)`/`LAST(B.price, 2)` - describes the result after those expressions have been
-    evaluated.
+该表包括以下列：
 
-<table class="table table-bordered">
-  <thead>
-    <tr>
-        <th style="white-space:nowrap">price</th>
-        <th style="white-space:nowrap">Classifier</th>
-        <th style="white-space:nowrap">LAST(B.price, 1)</th>
-        <th style="white-space:nowrap">LAST(B.price, 2)</th>
-        <th>Comment</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>10</td>
-      <td>-&gt; A</td>
-      <td></td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>15</td>
-      <td>-&gt; B</td>
-      <td>null</td>
-      <td>null</td>
-      <td>Notice that <code>LAST(A.price, 1)</code> is null because there is still nothing mapped
-          to <code>B</code>.</td>
-    </tr>
-    <tr>
-      <td>20</td>
-      <td>-&gt; B</td>
-      <td>15</td>
-      <td>null</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>31</td>
-      <td>-&gt; B</td>
-      <td>20</td>
-      <td>15</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>35</td>
-      <td></td>
-      <td>31</td>
-      <td>20</td>
-      <td>Not mapped because <code>35 &lt; 2 * 20</code>.</td>
-    </tr>
-  </tbody>
-</table>
+- `price` - 传入行的价格。
+- `Classifier` - 当前行的分类器，指示该行映射到的模式变量。
+- `LAST(B.price, 1)`/`LAST(B.price, 2)` - 描述对这些表达式求值后的结果。
 
-It might also make sense to use the default pattern variable with logical offsets.
+| price | Classifier | LAST(B.price, 1) | LAST(B.price, 2) |                        Comment                         |
+| :---: | :--------: | :--------------: | :--------------: | :----------------------------------------------------: |
+|  10   |    -> A    |                  |                  |                                                        |
+|  15   |    -> B    |       null       |       null       | 注意 `LAST(B.price, 1)` 为空，因为仍然没有映射到 `B`。 |
+|  20   |    -> B    |        15        |       null       |                                                        |
+|  31   |    -> B    |        20        |        15        |                                                        |
+|  35   |            |        31        |        20        |             因为 `35 < 2 * 20` 没有映射。              |
 
-In this case, an offset considers all the rows mapped so far:
+将默认模式变量与 logical offsets 一起使用也可能很有意义。
 
-{% highlight sql %}
+在这种情况下，offset 会包含到目前为止映射的所有行：
+
+```
 PATTERN (A B? C)
 DEFINE
   B AS B.price < 20,
   C AS LAST(price, 1) < C.price
-{% endhighlight %}
+```
 
-<table class="table table-bordered">
-  <thead>
-    <tr>
-        <th style="white-space:nowrap">price</th>
-        <th style="white-space:nowrap">Classifier</th>
-        <th style="white-space:nowrap">LAST(price, 1)</th>
-        <th>Comment</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>10</td>
-      <td>-&gt; A</td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>15</td>
-      <td>-&gt; B</td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>20</td>
-      <td>-&gt; C</td>
-      <td>15</td>
-      <td><code>LAST(price, 1)</code> is evaluated as the price of the row mapped to the
-          <code>B</code> variable.</td>
-    </tr>
-  </tbody>
-</table>
+| price | Classifier | LAST(price, 1) |                       Comment                        |
+| :---: | :--------: | :------------: | :--------------------------------------------------: |
+|  10   |    -> A    |                |                                                      |
+|  15   |    -> B    |                |                                                      |
+|  20   |    -> C    |       15       | `LAST(price, 1)` 被计算为映射到 `B` 变量的行的价格。 |
 
-If the second row did not map to the `B` variable, we would have the following results:
+如果第二行没有映射到 `B` 变量，则会得到以下结果：
 
-<table class="table table-bordered">
-  <thead>
-    <tr>
-        <th style="white-space:nowrap">price</th>
-        <th style="white-space:nowrap">Classifier</th>
-        <th style="white-space:nowrap">LAST(price, 1)</th>
-        <th>Comment</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>10</td>
-      <td>-&gt; A</td>
-      <td></td>
-      <td></td>
-    </tr>
-    <tr>
-      <td>20</td>
-      <td>-&gt; C</td>
-      <td>10</td>
-      <td><code>LAST(price, 1)</code> is evaluated as the price of the row mapped to the
-          <code>A</code> variable.</td>
-    </tr>
-  </tbody>
-</table>
+| price | Classifier | LAST(price, 1) |                       Comment                        |
+| :---: | :--------: | :------------: | :--------------------------------------------------: |
+|  10   |    -> A    |                |                                                      |
+|  20   |    -> C    |       10       | `LAST(price, 1)` 被计算为映射到 `A` 变量的行的价格。 |
 
-It is also possible to use multiple pattern variable references in the first argument of the
-`FIRST/LAST` functions. This way, one can write an expression that accesses multiple columns.
-However, all of them must use the same pattern variable. In other words, the value of the
-`LAST`/`FIRST` function must be computed in a single row.
+也可以在 `FIRST/LAST` 函数的第一个参数中使用多个模式变量引用。这样，可以编写访问多个列的表达式。但是，它们都必须使用相同的模式变量。换句话说，必须在一行中计算 `LAST`/`FIRST` 函数的值。
 
-Thus, it is possible to use `LAST(A.price * A.tax)`, but an expression like `LAST(A.price * B.tax)`
-is not allowed.
+因此，可以使用 `LAST(A.price * A.tax)`，但不允许使用类似 `LAST(A.price * B.tax)` 的表达式。
 
-After Match Strategy
---------------------
 
-The `AFTER MATCH SKIP` clause specifies where to start a new matching procedure after a complete
-match was found.
 
-There are four different strategies:
-* `SKIP PAST LAST ROW` - resumes the pattern matching at the next row after the last row of the
-  current match.
-* `SKIP TO NEXT ROW` - continues searching for a new match starting at the next row after the
-  starting row of the match.
-* `SKIP TO LAST variable` - resumes the pattern matching at the last row that is mapped to the
-  specified pattern variable.
-* `SKIP TO FIRST variable` - resumes the pattern matching at the first row that is mapped to the
-  specified pattern variable.
+## 匹配后的策略
 
-This is also a way to specify how many matches a single event can belong to. For example, with the
-`SKIP PAST LAST ROW` strategy every event can belong to at most one match.
+`AFTER MATCH SKIP` 子句指定在找到完全匹配后从何处开始新的匹配过程。
 
-#### Examples
+有四种不同的策略：
 
-In order to better understand the differences between those strategies one can take a look at the
-following example.
+- `SKIP PAST LAST ROW` - 在当前匹配的最后一行之后的下一行继续模式匹配。
+- `SKIP TO NEXT ROW` - 继续从匹配项开始行后的下一行开始搜索新匹配项。
+- `SKIP TO LAST variable` - 恢复映射到指定模式变量的最后一行的模式匹配。
+- `SKIP TO FIRST variable` - 在映射到指定模式变量的第一行继续模式匹配。
 
-For the following input rows:
+这也是一种指定单个事件可以属于多少个匹配项的方法。例如，使用 `SKIP PAST LAST ROW` 策略，每个事件最多只能属于一个匹配项。
 
-{% highlight text %}
+
+
+#### 示例
+
+为了更好地理解这些策略之间的差异，我们可以看看下面的例子。
+
+对于以下输入行：
+
+```
  symbol   tax   price         rowtime
 ======== ===== ======= =====================
  XYZ      1     7       2018-09-17 10:00:01
  XYZ      2     9       2018-09-17 10:00:02
  XYZ      1     10      2018-09-17 10:00:03
  XYZ      2     5       2018-09-17 10:00:04
- XYZ      2     17      2018-09-17 10:00:05
- XYZ      2     14      2018-09-17 10:00:06
-{% endhighlight %}
+ XYZ      2     10      2018-09-17 10:00:05
+ XYZ      2     7       2018-09-17 10:00:06
+ XYZ      2     14      2018-09-17 10:00:07
+```
 
-We evaluate the following query with different strategies:
+我们使用不同的策略评估以下查询：
 
-{% highlight sql %}
+```
 SELECT *
 FROM Ticker
     MATCH_RECOGNIZE(
@@ -944,189 +656,152 @@ FROM Ticker
         DEFINE
             A AS SUM(A.price) < 30
     )
-{% endhighlight %}
+```
 
-The query returns the sum of the prices of all rows mapped to `A` and the first and last timestamp
-of the overall match.
+该查询返回映射到 `A` 的总体匹配的第一个和最后一个时间戳所有行的价格之和。
 
-The query will produce different results based on which `AFTER MATCH` strategy was used:
+查询将根据使用的 `AFTER MATCH` 策略产生不同的结果：
 
 ##### `AFTER MATCH SKIP PAST LAST ROW`
 
-{% highlight text %}
+```
  symbol   sumPrice        startTime              endTime
 ======== ========== ===================== =====================
  XYZ      26         2018-09-17 10:00:01   2018-09-17 10:00:04
- XYZ      17         2018-09-17 10:00:05   2018-09-17 10:00:06
-{% endhighlight %}
+ XYZ      17         2018-09-17 10:00:05   2018-09-17 10:00:07
+```
 
-The first result matched against the rows #1, #2, #3, #4.
+第一个结果与 #1，#2，#3，#4 行匹配。
 
-The second result matched against the rows #5, #6.
+第二个结果与 #5，#6, #7 行匹配。
 
 ##### `AFTER MATCH SKIP TO NEXT ROW`
 
-{% highlight text %}
+```
  symbol   sumPrice        startTime              endTime
 ======== ========== ===================== =====================
  XYZ      26         2018-09-17 10:00:01   2018-09-17 10:00:04
  XYZ      24         2018-09-17 10:00:02   2018-09-17 10:00:05
- XYZ      15         2018-09-17 10:00:03   2018-09-17 10:00:05
- XYZ      22         2018-09-17 10:00:04   2018-09-17 10:00:06
- XYZ      17         2018-09-17 10:00:05   2018-09-17 10:00:06
-{% endhighlight %}
+ XYZ      25         2018-09-17 10:00:03   2018-09-17 10:00:06
+ XYZ      22         2018-09-17 10:00:04   2018-09-17 10:00:07
+ XYZ      17         2018-09-17 10:00:05   2018-09-17 10:00:07
+```
 
-Again, the first result matched against the rows #1, #2, #3, #4.
+同样，第一个结果与 #1，#2，#3，#4 行匹配。
 
-Compared to the previous strategy, the next match includes row #2 again for the next matching.
-Therefore, the second result matched against the rows #2, #3, #4, #5.
+与上一个策略相比，下一个匹配再次包含 #2 行匹配。因此，第二个结果与 #2，#3，#4，#5 行匹配。
 
-The third result matched against the rows #3, #4, #5.
+第三个结果与 #3，#4，#5, #6 行匹配。
 
-The forth result matched against the rows #4, #5, #6.
+第四个结果与 #4，#5，#6, #7 行匹配。
 
-The last result matched against the rows #5, #6.
+最后一个结果与 #5，#6, #7 行匹配。
 
 ##### `AFTER MATCH SKIP TO LAST A`
 
-{% highlight text %}
+```
  symbol   sumPrice        startTime              endTime
 ======== ========== ===================== =====================
  XYZ      26         2018-09-17 10:00:01   2018-09-17 10:00:04
- XYZ      15         2018-09-17 10:00:03   2018-09-17 10:00:05
- XYZ      22         2018-09-17 10:00:04   2018-09-17 10:00:06
- XYZ      17         2018-09-17 10:00:05   2018-09-17 10:00:06
-{% endhighlight %}
+ XYZ      25         2018-09-17 10:00:03   2018-09-17 10:00:06
+ XYZ      17         2018-09-17 10:00:05   2018-09-17 10:00:07
+```
 
-Again, the first result matched against the rows #1, #2, #3, #4.
+同样，第一个结果与 #1，#2，#3，#4 行匹配。
 
-Compared to the previous strategy, the next match includes only row #3 (mapped to `A`) again for
-the next matching. Therefore, the second result matched against the rows #3, #4, #5.
+与前一个策略相比，下一个匹配只包含 #3 行（对应 `A`）用于下一个匹配。因此，第二个结果与 #3，#4，#5, #6 行匹配。
 
-The third result matched against the rows #4, #5, #6.
-
-The last result matched against the rows #5, #6.
+最后一个结果与 #5，#6, #7 行匹配。
 
 ##### `AFTER MATCH SKIP TO FIRST A`
 
-This combination will produce a runtime exception because one would always try to start a new match
-where the last one started. This would produce an infinite loop and, thus, is prohibited.
+这种组合将产生一个运行时异常，因为人们总是试图在上一个开始的地方开始一个新的匹配。这将产生一个无限循环，因此是禁止的。
 
-One has to keep in mind that in case of the `SKIP TO FIRST/LAST variable` strategy it might be
-possible that there are no rows mapped to that variable (e.g. for pattern `A*`). In such cases, a
-runtime exception will be thrown as the standard requires a valid row to continue the matching.
+必须记住，在 `SKIP TO FIRST/LAST variable` 策略的场景下，可能没有映射到该变量的行（例如，对于模式 `A*`）。在这种情况下，将抛出一个运行时异常，因为标准要求一个有效的行来继续匹配。
 
-Time attributes
----------------
 
-In order to apply some subsequent queries on top of the `MATCH_RECOGNIZE` it might be required to
-use [time attributes](time_attributes.html). To select those there are available two functions:
 
-<table class="table table-bordered">
-  <thead>
-    <tr>
-      <th class="text-left" style="width: 40%">Function</th>
-      <th class="text-left">Description</th>
-    </tr>
-  </thead>
+## 时间属性
 
-  <tbody>
-    <tr>
-      <td>
-        <code>MATCH_ROWTIME()</code><br/>
-      </td>
-      <td><p>Returns the timestamp of the last row that was mapped to the given pattern.</p>
-      <p>The resulting attribute is a <a href="time_attributes.html">rowtime attribute</a>
-         that can be used in subsequent time-based operations such as
-         <a href="#joins">time-windowed joins</a> and <a href="#aggregations">group window or over
-         window aggregations</a>.</p></td>
-    </tr>
-    <tr>
-      <td>
-        <code>MATCH_PROCTIME()</code><br/>
-      </td>
-      <td><p>Returns a <a href="time_attributes.html#processing-time">proctime attribute</a>
-          that can be used in subsequent time-based operations such as
-          <a href="#joins">time-windowed joins</a> and <a href="#aggregations">group window or over
-          window aggregations</a>.</p></td>
-    </tr>
-  </tbody>
-</table>
+为了在 `MATCH_RECOGNIZE` 之上应用一些后续查询，可能需要使用[时间属性](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/time_attributes.html)。有两个函数可供选择：
 
-Controlling Memory Consumption
-------------------------------
+| Function           | Description                                                  |
+| :----------------- | :----------------------------------------------------------- |
+| `MATCH_ROWTIME()`  | 返回映射到给定模式的最后一行的时间戳。结果属性是[行时间属性](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/time_attributes.html)，可用于后续基于时间的操作，例如 [interval joins](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/joins.html#interval-joins) 和 [group window or over window aggregations](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#aggregations)。 |
+| `MATCH_PROCTIME()` | 返回[处理时间属性](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/time_attributes.html#processing-time)，该属性可用于随后的基于时间的操作，例如 [interval joins](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/joins.html#interval-joins) 和 [group window or over window aggregations](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#aggregations)。 |
 
-Memory consumption is an important consideration when writing `MATCH_RECOGNIZE` queries, as the
-space of potential matches is built in a breadth-first-like manner. Having that in mind, one must
-make sure that the pattern can finish. Preferably with a reasonable number of rows mapped to the
-match as they have to fit into memory.
 
-For example, the pattern must not have a quantifier without an upper limit that accepts every
-single row. Such a pattern could look like this:
 
-{% highlight sql %}
+## 控制内存消耗
+
+在编写 `MATCH_RECOGNIZE` 查询时，内存消耗是一个重要的考虑因素，因为潜在匹配的空间是以宽度优先的方式构建的。鉴于此，我们必须确保模式能够完成。最好使用映射到匹配项的合理数量的行，因为它们必须内存相适。
+
+例如，该模式不能有没有接受每一行上限的量词。这种模式可以是这样的：
+
+```
 PATTERN (A B+ C)
 DEFINE
   A as A.price > 10,
   C as C.price > 20
-{% endhighlight %}
+```
 
-The query will map every incoming row to the `B` variable and thus will never finish. This query
-could be fixed, e.g., by negating the condition for `C`:
+查询将每个传入行映射到 `B` 变量，因此永远不会完成。可以纠正此查询，例如，通过否定 `C` 的条件：
 
-{% highlight sql %}
+```
 PATTERN (A B+ C)
 DEFINE
   A as A.price > 10,
   B as B.price <= 20,
   C as C.price > 20
-{% endhighlight %}
+```
 
-Or by using the [reluctant quantifier](#greedy--reluctant-quantifiers):
+或者使用 [reluctant quantifier](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#greedy--reluctant-quantifiers)：
 
-{% highlight sql %}
+```
 PATTERN (A B+? C)
 DEFINE
   A as A.price > 10,
   C as C.price > 20
-{% endhighlight %}
+```
 
-<span class="label label-danger">Attention</span> Please note that the `MATCH_RECOGNIZE` clause
-does not use a configured [state retention time](query_configuration.html#idle-state-retention-time).
-One may want to use the `WITHIN` [clause](#time-constraint) for this purpose.
+**注意** 请注意，`MATCH_RECOGNIZE` 子句未使用配置的 [state retention time](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/query_configuration.html#idle-state-retention-time)。为此，可能需要使用 `WITHIN` [子句](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#time-constraint)。
 
-Known Limitations
------------------
 
-Flink's implementation of the `MATCH_RECOGNIZE` clause is an ongoing effort, and some features of
-the SQL standard are not yet supported.
 
-Unsupported features include:
-* Pattern expressions:
-  * Pattern groups - this means that e.g. quantifiers can not be applied to a subsequence of the
-    pattern. Thus, `(A (B C)+)` is not a valid pattern.
-  * Alterations - patterns like `PATTERN((A B | C D) E)`, which means that either a subsequence
-    `A B` or `C D` has to be found before looking for the `E` row.
-  * `PERMUTE` operator - which is equivalent to all permutations of variables that it was applied
-    to e.g. `PATTERN (PERMUTE (A, B, C))` = `PATTERN (A B C | A C B | B A C | B C A | C A B | C B A)`.
-  * Anchors - `^, $`, which denote beginning/end of a partition, those do not make sense in the
-    streaming context and will not be supported.
-  * Exclusion - `PATTERN ({- A -} B)` meaning that `A` will be looked for but will not participate
-    in the output. This works only for the `ALL ROWS PER MATCH` mode.
-  * Reluctant optional quantifier - `PATTERN A??` only the greedy optional quantifier is supported.
-* `ALL ROWS PER MATCH` output mode - which produces an output row for every row that participated
-   in the creation of a found match. This also means:
-  * that the only supported semantic for the `MEASURES` clause is `FINAL`
-  * `CLASSIFIER` function, which returns the pattern variable that a row was mapped to, is not yet
-    supported.
-* `SUBSET` - which allows creating logical groups of pattern variables and using those groups in
-  the `DEFINE` and `MEASURES` clauses.
-* Physical offsets - `PREV/NEXT`, which indexes all events seen rather than only those that were
-  mapped to a pattern variable (as in [logical offsets](#logical-offsets) case).
-* Extracting time attributes - there is currently no possibility to get a time attribute for
-  subsequent time-based operations.
-* `MATCH_RECOGNIZE` is supported only for SQL. There is no equivalent in the Table API.
-* Aggregations:
-  * distinct aggregations are not supported.
+## 已知的局限
 
-{% top %}
+Flink 对 `MATCH_RECOGNIZE` 子句实现是一项长期持续的工作，目前尚不支持 SQL 标准的某些功能。
+
+不支持的功能包括：
+
+- 模式表达式：
+
+  - Pattern groups - 这意味着量词不能应用于模式的子序列。因此，`(A (B C)+)` 不是有效的模式。
+  - Alterations - 像 `PATTERN((A B | C D) E)`这样的模式，这意味着在寻找 `E` 行之前必须先找到子序列 `A B` 或者 `C D`。
+  - `PERMUTE` operator - 这等同于它应用于所示的所有变量的排列 `PATTERN (PERMUTE (A, B, C))` = `PATTERN (A B C | A C B | B A C | B C A | C A B | C B A)`。
+  - Anchors - `^, $`，表示分区的开始/结束，在流上下文中没有意义，将不被支持。
+  - Exclusion - `PATTERN ({- A -} B)` 表示将查找 `A`，但是不会参与输出。这只适用于 `ALL ROWS PER MATCH` 方式。
+  - Reluctant optional quantifier - `PATTERN A??` 只支持贪婪的可选量词。
+
+- ```
+  ALL ROWS PER MATCH
+  ```
+
+   
+
+  输出方式 - 为参与创建匹配项的每一行产生一个输出行。这也意味着：
+
+  - `MEASURES` 子句唯一支持的语义是 `FINAL`
+  - `CLASSIFIER` 函数，尚不支持返回行映射到的模式变量。
+
+- `SUBSET` - 它允许创建模式变量的逻辑组，并在 `DEFINE` 和 `MEASURES` 子句中使用这些组。
+
+- Physical offsets - `PREV/NEXT`，它为所有可见事件建立索引，而不是仅将那些映射到模式变量的事件编入索引（如 [logical offsets](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/table/streaming/match_recognize.html#logical-offsets) 的情况）。
+
+- 提取时间属性 - 目前无法为后续基于时间的操作提取时间属性。
+
+- `MATCH_RECOGNIZE` 仅 SQL 支持。Table API 中没有等效项。
+
+- Aggregations:
+
+  - 不支持 distinct aggregations。

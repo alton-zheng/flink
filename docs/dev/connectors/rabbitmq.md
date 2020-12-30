@@ -1,51 +1,94 @@
-# RabbitMQ 连接器
+---
+title: "RabbitMQ Connector"
+nav-title: RabbitMQ
+nav-parent_id: connectors
+nav-pos: 6
+---
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
 
-## RabbitMQ 连接器的许可证
+  http://www.apache.org/licenses/LICENSE-2.0
 
-Flink 的 RabbitMQ 连接器依赖了 "RabbitMQ AMQP Java Client"，它基于三种协议下发行：Mozilla Public License 1.1 ("MPL")、GNU General Public License version 2 ("GPL") 和 Apache License version 2 ("ASL")。
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
 
-Flink 自身既没有复用 "RabbitMQ AMQP Java Client" 的代码，也没有将 "RabbitMQ AMQP Java Client" 打二进制包。
+## License of the RabbitMQ Connector
 
-如果用户发布的内容是基于 Flink 的 RabbitMQ 连接器的（进而重新发布了 "RabbitMQ AMQP Java Client" ），那么一定要注意这可能会受到 Mozilla Public License 1.1 ("MPL")、GNU General Public License version 2 ("GPL")、Apache License version 2 ("ASL") 协议的限制.
+Flink's RabbitMQ connector defines a Maven dependency on the
+"RabbitMQ AMQP Java Client", is triple-licensed under the Mozilla Public License 1.1 ("MPL"), the GNU General Public License version 2 ("GPL") and the Apache License version 2 ("ASL").
 
-## RabbitMQ 连接器
+Flink itself neither reuses source code from the "RabbitMQ AMQP Java Client"
+nor packages binaries from the "RabbitMQ AMQP Java Client".
 
-这个连接器可以访问 [RabbitMQ](http://www.rabbitmq.com/) 的数据流。使用这个连接器，需要在工程里添加下面的依赖：
+Users that create and publish derivative work based on Flink's
+RabbitMQ connector (thereby re-distributing the "RabbitMQ AMQP Java Client")
+must be aware that this may be subject to conditions declared in the Mozilla Public License 1.1 ("MPL"), the GNU General Public License version 2 ("GPL") and the Apache License version 2 ("ASL").
 
-```xml
+## RabbitMQ Connector
+
+This connector provides access to data streams from [RabbitMQ](http://www.rabbitmq.com/). To use this connector, add the following dependency to your project:
+
+{% highlight xml %}
 <dependency>
   <groupId>org.apache.flink</groupId>
-  <artifactId>flink-connector-rabbitmq_2.11</artifactId>
-  <version>1.10.0</version>
+  <artifactId>flink-connector-rabbitmq{{ site.scala_version_suffix }}</artifactId>
+  <version>{{site.version }}</version>
 </dependency>
-```
+{% endhighlight %}
 
-注意连接器现在没有包含在二进制发行版中。集群执行的相关信息请参考 [这里](../projectsetup/dependencies.html).
+Note that the streaming connectors are currently not part of the binary distribution. See linking with them for cluster execution [here]({% link dev/project-configuration.md %}).
 
-### 安装 RabbitMQ
-安装 RabbitMQ 请参考 [RabbitMQ 下载页面](http://www.rabbitmq.com/download.html)。安装完成之后，服务会自动拉起，应用程序就可以尝试连接到 RabbitMQ 了。
+### Installing RabbitMQ
+Follow the instructions from the [RabbitMQ download page](http://www.rabbitmq.com/download.html). After the installation the server automatically starts, and the application connecting to RabbitMQ can be launched.
 
 ### RabbitMQ Source
 
-`RMQSource` 负责从 RabbitMQ 中消费数据，可以配置三种不同级别的保证：
+This connector provides a `RMQSource` class to consume messages from a RabbitMQ
+queue. This source provides three different levels of guarantees, depending
+on how it is configured with Flink:
 
-1. **精确一次**: 保证精确一次需要以下条件 -
- - *开启 checkpointing*: 开启 checkpointing 之后，消息在 checkpoints 
- 完成之后才会被确认（然后从 RabbitMQ 队列中删除）.
- - *使用关联标识（Correlation ids）*: 关联标识是 RabbitMQ 的一个特性，消息写入 RabbitMQ 时在消息属性中设置。
- 从 checkpoint 恢复时有些消息可能会被重复处理，source 可以利用关联标识对消息进行去重。
- - *非并发 source*: 为了保证精确一次的数据投递，source 必须是非并发的（并行度设置为1）。
-  这主要是由于 RabbitMQ 分发数据时是从单队列向多个消费者投递消息的。
+1. **Exactly-once**: In order to achieve exactly-once guarantees with the
+RabbitMQ source, the following is required -
+ - *Enable checkpointing*: With checkpointing enabled, messages are only
+ acknowledged (hence, removed from the RabbitMQ queue) when checkpoints
+ are completed.
+ - *Use correlation ids*: Correlation ids are a RabbitMQ application feature.
+ You have to set it in the message properties when injecting messages into RabbitMQ.
+ The correlation id is used by the source to deduplicate any messages that
+ have been reprocessed when restoring from a checkpoint.
+ - *Non-parallel source*: The source must be non-parallel (parallelism set
+ to 1) in order to achieve exactly-once. This limitation is mainly due to
+ RabbitMQ's approach to dispatching messages from a single queue to multiple
+ consumers.
 
-2. **至少一次**:  在 checkpointing 开启的条件下，如果没有使用关联标识或者 source 是并发的，
-那么 source 就只能提供至少一次的保证。
 
-3. **无任何保证**: 如果没有开启 checkpointing，source 就不能提供任何的数据投递保证。
-使用这种设置时，source 一旦接收到并处理消息，消息就会被自动确认。
+2. **At-least-once**: When checkpointing is enabled, but correlation ids
+are not used or the source is parallel, the source only provides at-least-once
+guarantees.
 
-下面是一个保证 exactly-once 的 RabbitMQ source 示例。 注释部分展示了更加宽松的保证应该如何配置。
+3. **No guarantee**: If checkpointing isn't enabled, the source does not
+have any strong delivery guarantees. Under this setting, instead of
+collaborating with Flink's checkpointing, messages will be automatically
+acknowledged once the source receives and processes them.
 
-```java
+Below is a code example for setting up an exactly-once RabbitMQ source.
+Inline comments explain which parts of the configuration can be ignored
+for more relaxed guarantees.
+
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
 final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 // checkpointing is required for exactly-once or at-least-once guarantees
 env.enableCheckpointing(...);
@@ -63,9 +106,10 @@ final DataStream<String> stream = env
         true,                        // use correlation ids; can be false if only at-least-once is required
         new SimpleStringSchema()))   // deserialization schema to turn messages into Java objects
     .setParallelism(1);              // non-parallel source is only required for exactly-once
-```
-
-```scala
+{% endhighlight %}
+</div>
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
 val env = StreamExecutionEnvironment.getExecutionEnvironment
 // checkpointing is required for exactly-once or at-least-once guarantees
 env.enableCheckpointing(...)
@@ -83,12 +127,51 @@ val stream = env
         true,                        // use correlation ids; can be false if only at-least-once is required
         new SimpleStringSchema))     // deserialization schema to turn messages into Java objects
     .setParallelism(1)               // non-parallel source is only required for exactly-once
-```
+{% endhighlight %}
+</div>
+</div>
+
+#### Quality of Service (QoS) / Consumer Prefetch
+
+The RabbitMQ Source provides a simple way to set the `basicQos` on the source's channel through the `RMQConnectionConfig`.
+Since there is one connection/ channel per-parallel source, this prefetch count will effectively be multiplied by the
+source's parallelism for how many total unacknowledged messages can be sent to the job at one time.
+If more complex configuration is required, `RMQSource#setupChannel(Connection)` can be overridden and manually configured.
+
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
+final RMQConnectionConfig connectionConfig = new RMQConnectionConfig.Builder()
+    .setPrefetchCount(30_000)
+    ...
+    .build();
+
+{% endhighlight %}
+</div>
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
+val connectionConfig = new RMQConnectionConfig.Builder()
+    .setPrefetchCount(30000)
+    ...
+    .build
+{% endhighlight %}
+</div>
+</div>
+
+The prefetch count is unset by default, meaning the RabbitMQ server will send unlimited messages. In production, it
+is best to set this value. For high volume queues and checkpointing enabled, some tuning may be required to reduce
+wasted cycles, as messages are only acknowledged on checkpoints if enabled.
+
+More about QoS and prefetch can be found [here](https://www.rabbitmq.com/confirms.html#channel-qos-prefetch)
+and more about the options available in AMQP 0-9-1 [here](https://www.rabbitmq.com/consumer-prefetch.html).
 
 ### RabbitMQ Sink
-该连接器提供了一个 `RMQSink` 类，用来向 RabbitMQ 队列发送数据。下面是设置 RabbitMQ sink 的代码示例：
+This connector provides a `RMQSink` class for sending messages to a RabbitMQ
+queue. Below is a code example for setting up a RabbitMQ sink.
 
-```java
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
 final DataStream<String> stream = ...
 
 final RMQConnectionConfig connectionConfig = new RMQConnectionConfig.Builder()
@@ -101,9 +184,10 @@ stream.addSink(new RMQSink<String>(
     connectionConfig,            // config for the RabbitMQ connection
     "queueName",                 // name of the RabbitMQ queue to send messages to
     new SimpleStringSchema()));  // serialization schema to turn Java objects to messages
-```
-
-```scala
+{% endhighlight %}
+</div>
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
 val stream: DataStream[String] = ...
 
 val connectionConfig = new RMQConnectionConfig.Builder()
@@ -116,7 +200,10 @@ stream.addSink(new RMQSink[String](
     connectionConfig,         // config for the RabbitMQ connection
     "queueName",              // name of the RabbitMQ queue to send messages to
     new SimpleStringSchema))  // serialization schema to turn Java objects to messages
-```
+{% endhighlight %}
+</div>
+</div>
 
-更多关于 RabbitMQ 的信息请参考 [这里](http://www.rabbitmq.com/).
+More about RabbitMQ can be found [here](http://www.rabbitmq.com/).
 
+{% top %}

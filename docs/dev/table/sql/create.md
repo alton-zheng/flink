@@ -1,78 +1,133 @@
-# CREATE 语句
+---
+title: "CREATE Statements"
+nav-parent_id: sql
+nav-pos: 2
+---
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
 
-CREATE 语句用于向当前或指定的 [Catalog](../../table/catalogs.html) 中注册表、视图或函数。注册后的表、视图和函数可以在 SQL 查询中使用。
+  http://www.apache.org/licenses/LICENSE-2.0
 
-目前 Flink SQL 支持下列 CREATE 语句：
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+* This will be replaced by the TOC
+{:toc}
+
+CREATE statements are used to register a table/view/function into current or specified [Catalog]({% link dev/table/catalogs.md %}). A registered table/view/function can be used in SQL queries.
+
+Flink SQL supports the following CREATE statements for now:
 
 - CREATE TABLE
 - CREATE DATABASE
+- CREATE VIEW
 - CREATE FUNCTION
 
-## 执行 CREATE 语句
+## Run a CREATE statement
 
-可以使用 `TableEnvironment` 中的 `sqlUpdate()` 方法执行 CREATE 语句，也可以在 [SQL CLI](../../table/sqlClient.html) 中执行 CREATE 语句。 若 CREATE 操作执行成功，`sqlUpdate()` 方法不返回任何内容，否则会抛出异常。
+<div class="codetabs" data-hide-tabs="1" markdown="1">
+<div data-lang="java/scala" markdown="1">
 
-以下的例子展示了如何在 `TableEnvironment` 和  SQL CLI 中执行一个 CREATE 语句。
+CREATE statements can be executed with the `executeSql()` method of the `TableEnvironment`. The `executeSql()` method returns 'OK' for a successful CREATE operation, otherwise will throw an exception.
 
-```java
+The following examples show how to run a CREATE statement in `TableEnvironment`.
+
+</div>
+
+<div data-lang="python" markdown="1">
+
+CREATE statements can be executed with the `execute_sql()` method of the `TableEnvironment`. The `execute_sql()` method returns 'OK' for a successful CREATE operation, otherwise will throw an exception.
+
+The following examples show how to run a CREATE statement in `TableEnvironment`.
+
+</div>
+
+<div data-lang="SQL CLI" markdown="1">
+
+CREATE statements can be executed in [SQL CLI]({% link dev/table/sqlClient.md %}).
+
+The following examples show how to run a CREATE statement in SQL CLI.
+
+</div>
+</div>
+
+<div class="codetabs" markdown="1">
+<div data-lang="java" markdown="1">
+{% highlight java %}
 EnvironmentSettings settings = EnvironmentSettings.newInstance()...
 TableEnvironment tableEnv = TableEnvironment.create(settings);
 
-// 对已经已经注册的表进行 SQL 查询
-// 注册名为 “Orders” 的表
-tableEnv.sqlUpdate("CREATE TABLE Orders (`user` BIGINT, product STRING, amount INT) WITH (...)");
-// 在表上执行 SQL 查询，并把得到的结果作为一个新的表
+// SQL query with a registered table
+// register a table named "Orders"
+tableEnv.executeSql("CREATE TABLE Orders (`user` BIGINT, product STRING, amount INT) WITH (...)");
+// run a SQL query on the Table and retrieve the result as a new Table
 Table result = tableEnv.sqlQuery(
   "SELECT product, amount FROM Orders WHERE product LIKE '%Rubber%'");
 
-// SQL 对已注册的表进行 update 操作
-// 注册 TableSink
-tableEnv.sqlUpdate("CREATE TABLE RubberOrders(product STRING, amount INT) WITH (...)");
-// 在表上执行 SQL 更新查询并向 TableSink 发出结果
-tableEnv.sqlUpdate(
+// Execute insert SQL with a registered table
+// register a TableSink
+tableEnv.executeSql("CREATE TABLE RubberOrders(product STRING, amount INT) WITH (...)");
+// run an insert SQL on the Table and emit the result to the TableSink
+tableEnv.executeSql(
   "INSERT INTO RubberOrders SELECT product, amount FROM Orders WHERE product LIKE '%Rubber%'");
-```
+{% endhighlight %}
+</div>
 
-```scala
+<div data-lang="scala" markdown="1">
+{% highlight scala %}
 val settings = EnvironmentSettings.newInstance()...
 val tableEnv = TableEnvironment.create(settings)
 
-// 对已经已经注册的表进行 SQL 查询
-// 注册名为 “Orders” 的表
-tableEnv.sqlUpdate("CREATE TABLE Orders (`user` BIGINT, product STRING, amount INT) WITH (...)");
-// 在表上执行 SQL 查询，并把得到的结果作为一个新的表
+// SQL query with a registered table
+// register a table named "Orders"
+tableEnv.executeSql("CREATE TABLE Orders (`user` BIGINT, product STRING, amount INT) WITH (...)");
+// run a SQL query on the Table and retrieve the result as a new Table
 val result = tableEnv.sqlQuery(
   "SELECT product, amount FROM Orders WHERE product LIKE '%Rubber%'");
 
-// SQL 对已注册的表进行 update 操作
-// 注册 TableSink
-tableEnv.sqlUpdate("CREATE TABLE RubberOrders(product STRING, amount INT) WITH ('connector.path'='/path/to/file' ...)");
-// 在表上执行 SQL 更新查询并向 TableSink 发出结果
-tableEnv.sqlUpdate(
+// Execute insert SQL with a registered table
+// register a TableSink
+tableEnv.executeSql("CREATE TABLE RubberOrders(product STRING, amount INT) WITH ('connector.path'='/path/to/file' ...)");
+// run an insert SQL on the Table and emit the result to the TableSink
+tableEnv.executeSql(
   "INSERT INTO RubberOrders SELECT product, amount FROM Orders WHERE product LIKE '%Rubber%'")
-```
+{% endhighlight %}
+</div>
 
+<div data-lang="python" markdown="1">
+{% highlight python %}
+settings = EnvironmentSettings.new_instance()...
+table_env = StreamTableEnvironment.create(env, settings)
 
-```python
-settings = EnvironmentSettings.newInstance()...
-table_env = TableEnvironment.create(settings)
-
-# 对已经已经注册的表进行 SQL 查询
-# 注册名为 “Orders” 的表
-tableEnv.sqlUpdate("CREATE TABLE Orders (`user` BIGINT, product STRING, amount INT) WITH (...)");
-# 在表上执行 SQL 查询，并把得到的结果作为一个新的表
-result = tableEnv.sqlQuery(
+# SQL query with a registered table
+# register a table named "Orders"
+table_env.execute_sql("CREATE TABLE Orders (`user` BIGINT, product STRING, amount INT) WITH (...)");
+# run a SQL query on the Table and retrieve the result as a new Table
+result = table_env.sql_query(
   "SELECT product, amount FROM Orders WHERE product LIKE '%Rubber%'");
 
-# SQL 对已注册的表进行 update 操作
-# 注册 TableSink
-table_env.sql_update("CREATE TABLE RubberOrders(product STRING, amount INT) WITH (...)")
-# 在表上执行 SQL 更新查询并向 TableSink 发出结果
+# Execute an INSERT SQL with a registered table
+# register a TableSink
+table_env.execute_sql("CREATE TABLE RubberOrders(product STRING, amount INT) WITH (...)")
+# run an INSERT SQL on the Table and emit the result to the TableSink
 table_env \
-    .sql_update("INSERT INTO RubberOrders SELECT product, amount FROM Orders WHERE product LIKE '%Rubber%'")
-```
+    .execute_sql("INSERT INTO RubberOrders SELECT product, amount FROM Orders WHERE product LIKE '%Rubber%'")
+{% endhighlight %}
+</div>
 
-```oracle-plsql
+<div data-lang="SQL CLI" markdown="1">
+{% highlight sql %}
 Flink SQL> CREATE TABLE Orders (`user` BIGINT, product STRING, amount INT) WITH (...);
 [INFO] Table has been created.
 
@@ -81,144 +136,471 @@ Flink SQL> CREATE TABLE RubberOrders (product STRING, amount INT) WITH (...);
 
 Flink SQL> INSERT INTO RubberOrders SELECT product, amount FROM Orders WHERE product LIKE '%Rubber%';
 [INFO] Submitting SQL update statement to the cluster...
-```
+{% endhighlight %}
+</div>
+</div>
 
+{% top %}
 
-##  CREATE TABLE
+## CREATE TABLE
 
-```sqlite-psql
+The following grammar gives an overview about the available syntax:
+
+{% highlight text %}
 CREATE TABLE [catalog_name.][db_name.]table_name
   (
-    { <column_definition> | <computed_column_definition> }[ , ...n]
+    { <physical_column_definition> | <metadata_column_definition> | <computed_column_definition> }[ , ...n]
     [ <watermark_definition> ]
+    [ <table_constraint> ][ , ...n]
   )
   [COMMENT table_comment]
   [PARTITIONED BY (partition_column_name1, partition_column_name2, ...)]
   WITH (key1=val1, key2=val2, ...)
+  [ LIKE source_table [( <like_options> )] ]
+   
+<physical_column_definition>:
+  column_name column_type [ <column_constraint> ] [COMMENT column_comment]
+  
+<column_constraint>:
+  [CONSTRAINT constraint_name] PRIMARY KEY NOT ENFORCED
 
-<column_definition>:
-  column_name column_type [COMMENT column_comment]
+<table_constraint>:
+  [CONSTRAINT constraint_name] PRIMARY KEY (column_name, ...) NOT ENFORCED
+
+<metadata_column_definition>:
+  column_name column_type METADATA [ FROM metadata_key ] [ VIRTUAL ]
 
 <computed_column_definition>:
   column_name AS computed_column_expression [COMMENT column_comment]
 
 <watermark_definition>:
   WATERMARK FOR rowtime_column_name AS watermark_strategy_expression
-```
 
+<source_table>:
+  [catalog_name.][db_name.]table_name
 
+<like_options>:
+{
+   { INCLUDING | EXCLUDING } { ALL | CONSTRAINTS | PARTITIONS }
+ | { INCLUDING | EXCLUDING | OVERWRITING } { GENERATED | OPTIONS | WATERMARKS } 
+}[, ...]
 
-根据指定的表名创建一个表，如果同名表已经在 catalog 中存在了，则无法注册。
+{% endhighlight %}
 
-**COMPUTED COLUMN**
+The statement above creates a table with the given name. If a table with the same name already exists
+in the catalog, an exception is thrown.
 
-计算列是一个使用 “`column_name AS computed_column_expression`” 语法生成的虚拟列。它由使用同一表中其他列的非查询表达式生成，并且不会在表中进行物理存储。例如，一个计算列可以使用 `cost AS price * quantity` 进行定义，这个表达式可以包含物理列、常量、函数或变量的任意组合，但这个表达式不能存在任何子查询。
+### Columns
 
-在 Flink 中计算列一般用于为 CREATE TABLE 语句定义 [时间属性]({{ site.baseurl}}/zh/dev/table/streaming/time_attributes.html)。
-[处理时间属性]({{ site.baseurl}}/zh/dev/table/streaming/time_attributes.html#processing-time) 可以简单地通过使用了系统函数 `PROCTIME()` 的 `proc AS PROCTIME()` 语句进行定义。
-另一方面，由于事件时间列可能需要从现有的字段中获得，因此计算列可用于获得事件时间列。例如，原始字段的类型不是 `TIMESTAMP(3)` 或嵌套在 JSON 字符串中。
+**Physical / Regular Columns**
 
-注意：
+Physical columns are regular columns known from databases. They define the names, the types, and the
+order of fields in the physical data. Thus, physical columns represent the payload that is read from
+and written to an external system. Connectors and formats use these columns (in the defined order)
+to configure themselves. Other kinds of columns can be declared between physical columns but will not
+influence the final physical schema.
 
-- 定义在一个数据源表（ source table ）上的计算列会在从数据源读取数据后被计算，它们可以在 SELECT 查询语句中使用。
-- 计算列不可以作为 INSERT 语句的目标，在 INSERT 语句中，SELECT 语句的 schema 需要与目标表不带有计算列的 schema 一致。
+The following statement creates a table with only regular columns:
 
-**WATERMARK**
+{% highlight sql %}
+CREATE TABLE MyTable (
+  `user_id` BIGINT,
+  `name` STRING
+) WITH (
+  ...
+);
+{% endhighlight %}
 
-`WATERMARK` 定义了表的事件时间属性，其形式为 `WATERMARK FOR rowtime_column_name  AS watermark_strategy_expression` 。
+**Metadata Columns**
 
-`rowtime_column_name` 把一个现有的列定义为一个为表标记事件时间的属性。该列的类型必须为 `TIMESTAMP(3)`，且是 schema 中的顶层列，它也可以是一个计算列。
+Metadata columns are an extension to the SQL standard and allow to access connector and/or format specific
+fields for every row of a table. A metadata column is indicated by the `METADATA` keyword. For example,
+a metadata column can be be used to read and write the timestamp from and to Kafka records for time-based
+operations. The [connector and format documentation]({% link dev/table/connectors/index.md %}) lists the
+available metadata fields for every component. However, declaring a metadata column in a table's schema
+is optional.
 
-`watermark_strategy_expression` 定义了 watermark 的生成策略。它允许使用包括计算列在内的任意非查询表达式来计算 watermark ；表达式的返回类型必须是 `TIMESTAMP(3)`，表示了从 Epoch 以来的经过的时间。
-返回的 watermark 只有当其不为空且其值大于之前发出的本地 watermark 时才会被发出（以保证 watermark 递增）。每条记录的 watermark 生成表达式计算都会由框架完成。
-框架会定期发出所生成的最大的 watermark ，如果当前 watermark 仍然与前一个 watermark 相同、为空、或返回的 watermark 的值小于最后一个发出的 watermark ，则新的 watermark 不会被发出。
-Watermark 根据 [`pipeline.auto-watermark-interval`]({{ site.baseurl }}/zh/ops/config.html#pipeline-auto-watermark-interval) 中所配置的间隔发出。
-若 watermark 的间隔是 `0ms` ，那么每条记录都会产生一个 watermark，且 watermark 会在不为空并大于上一个发出的 watermark 时发出。
+The following statement creates a table with an additional metadata column that references the metadata field `timestamp`:
 
-使用事件时间语义时，表必须包含事件时间属性和 watermark 策略。
+{% highlight sql %}
+CREATE TABLE MyTable (
+  `user_id` BIGINT,
+  `name` STRING,
+  `record_time` TIMESTAMP(3) WITH LOCAL TIME ZONE METADATA FROM 'timestamp'    -- reads and writes a Kafka record's timestamp
+) WITH (
+  'connector' = 'kafka'
+  ...
+);
+{% endhighlight %}
 
-Flink 提供了几种常用的 watermark 策略。
+Every metadata field is identified by a string-based key and has a documented data type. For example,
+the Kafka connector exposes a metadata field with key `timestamp` and data type `TIMESTAMP(3) WITH LOCAL TIME ZONE`
+that can be used for both reading and writing records.
 
-- 严格递增时间戳： `WATERMARK FOR rowtime_column AS rowtime_column`。
+In the example above, the metadata column `record_time` becomes part of the table's schema and can be
+transformed and stored like a regular column:
 
-  发出到目前为止已观察到的最大时间戳的 watermark ，时间戳小于最大时间戳的行被认为没有迟到。
+{% highlight sql %}
+INSERT INTO MyTable SELECT user_id, name, record_time + INTERVAL '1' SECOND FROM MyTable;
+{% endhighlight %}
 
-- 递增时间戳： `WATERMARK FOR rowtime_column AS rowtime_column - INTERVAL '0.001' SECOND`。
+For convenience, the `FROM` clause can be omitted if the column name should be used as the identifying metadata key:
 
-  发出到目前为止已观察到的最大时间戳减 1 的 watermark ，时间戳等于或小于最大时间戳的行被认为没有迟到。
+{% highlight sql %}
+CREATE TABLE MyTable (
+  `user_id` BIGINT,
+  `name` STRING,
+  `timestamp` TIMESTAMP(3) WITH LOCAL TIME ZONE METADATA    -- use column name as metadata key
+) WITH (
+  'connector' = 'kafka'
+  ...
+);
+{% endhighlight %}
 
-- 有界乱序时间戳： `WATERMARK FOR rowtime_column AS rowtime_column - INTERVAL 'string' timeUnit`。
+For convenience, the runtime will perform an explicit cast if the data type of the column differs from
+the data type of the metadata field. Of course, this requires that the two data types are compatible.
 
-  发出到目前为止已观察到的最大时间戳减去指定延迟的 watermark ，例如， `WATERMARK FOR rowtime_column AS rowtime_column - INTERVAL '5' SECOND` 是一个 5 秒延迟的 watermark 策略。
+{% highlight sql %}
+CREATE TABLE MyTable (
+  `user_id` BIGINT,
+  `name` STRING,
+  `timestamp` BIGINT METADATA    -- cast the timestamp as BIGINT
+) WITH (
+  'connector' = 'kafka'
+  ...
+);
+{% endhighlight %}
 
-```sqlite-psql
+By default, the planner assumes that a metadata column can be used for both reading and writing. However,
+in many cases an external system provides more read-only metadata fields than writable fields. Therefore,
+it is possible to exclude metadata columns from persisting using the `VIRTUAL` keyword.
+
+{% highlight sql %}
+CREATE TABLE MyTable (
+  `timestamp` BIGINT METADATA,       -- part of the query-to-sink schema
+  `offset` BIGINT METADATA VIRTUAL,  -- not part of the query-to-sink schema
+  `user_id` BIGINT,
+  `name` STRING,
+) WITH (
+  'connector' = 'kafka'
+  ...
+);
+{% endhighlight %}
+
+In the example above, the `offset` is a read-only metadata column and excluded from the query-to-sink
+schema. Thus, source-to-query schema (for `SELECT`) and query-to-sink (for `INSERT INTO`) schema differ:
+
+{% highlight text %}
+source-to-query schema:
+MyTable(`timestamp` BIGINT, `offset` BIGINT, `user_id` BIGINT, `name` STRING)
+
+query-to-sink schema:
+MyTable(`timestamp` BIGINT, `user_id` BIGINT, `name` STRING)
+{% endhighlight %}
+
+**Computed Columns**
+
+Computed columns are virtual columns that are generated using the syntax `column_name AS computed_column_expression`.
+
+A computed column evaluates an expression that can reference other columns declared in the same table.
+Both physical columns and metadata columns can be accessed if they preceed the computed column in the
+schema declaration. The column itself is not physically stored within the table. The column's data type
+is derived automatically from the given expression and does not have to be declared manually.
+
+The planner will transform computed columns into a regular projection after the source. For optimization
+or [watermark strategy push down]({% link dev/table/sourceSinks.md %}), the evaluation might be spread
+across operators, performed multiple times, or skipped if not needed for the given query.
+
+For example, a computed column could be defined as:
+{% highlight sql %}
+CREATE TABLE MyTable (
+  `user_id` BIGINT,
+  `price` DOUBLE,
+  `quantity` DOUBLE,
+  `cost` AS price * quanitity,  -- evaluate expression and supply the result to queries
+) WITH (
+  'connector' = 'kafka'
+  ...
+);
+{% endhighlight %}
+
+The expression may contain any combination of columns, constants, or functions. The expression cannot
+contain a subquery.
+
+Computed columns are commonly used in Flink for defining [time attributes]({% link dev/table/streaming/time_attributes.md %})
+in `CREATE TABLE` statements.
+- A [processing time attribute]({% link dev/table/streaming/time_attributes.md %}#processing-time)
+can be defined easily via `proc AS PROCTIME()` using the system's `PROCTIME()` function.
+- An [event time attribute]({% link dev/table/streaming/time_attributes.md %}#event-time) timestamp
+can be pre-processed before the `WATERMARK` declaration. For example, the computed column can be used
+if the original field is not `TIMESTAMP(3)` type or is nested in a JSON string.
+
+Similar to virtual metadata columns, computed columns are excluded from persisting. Therefore, a computed
+column cannot be the target of an `INSERT INTO` statement. Thus, source-to-query schema (for `SELECT`)
+and query-to-sink (for `INSERT INTO`) schema differ:
+
+{% highlight text %}
+source-to-query schema:
+MyTable(`user_id` BIGINT, `price` DOUBLE, `quantity` DOUBLE, `cost` DOUBLE)
+
+query-to-sink schema:
+MyTable(`user_id` BIGINT, `price` DOUBLE, `quantity` DOUBLE)
+{% endhighlight %}
+
+### `WATERMARK`
+
+The `WATERMARK` clause defines the event time attributes of a table and takes the form `WATERMARK FOR rowtime_column_name AS watermark_strategy_expression`.
+
+The  `rowtime_column_name` defines an existing column that is marked as the event time attribute of the table. The column must be of type `TIMESTAMP(3)` and be a top-level column in the schema. It may be a computed column.
+
+The `watermark_strategy_expression` defines the watermark generation strategy. It allows arbitrary non-query expression, including computed columns, to calculate the watermark. The expression return type must be TIMESTAMP(3), which represents the timestamp since the Epoch.
+The returned watermark will be emitted only if it is non-null and its value is larger than the previously emitted local watermark (to preserve the contract of ascending watermarks). The watermark generation expression is evaluated by the framework for every record.
+The framework will periodically emit the largest generated watermark. If the current watermark is still identical to the previous one, or is null, or the value of the returned watermark is smaller than that of the last emitted one, then no new watermark will be emitted.
+Watermark is emitted in an interval defined by [`pipeline.auto-watermark-interval`]({% link deployment/config.md %}#pipeline-auto-watermark-interval) configuration.
+If watermark interval is `0ms`, the generated watermarks will be emitted per-record if it is not null and greater than the last emitted one.
+
+When using event time semantics, tables must contain an event time attribute and watermarking strategy.
+
+Flink provides several commonly used watermark strategies.
+
+- Strictly ascending timestamps: `WATERMARK FOR rowtime_column AS rowtime_column`.
+
+  Emits a watermark of the maximum observed timestamp so far. Rows that have a timestamp bigger to the max timestamp are not late.
+
+- Ascending timestamps: `WATERMARK FOR rowtime_column AS rowtime_column - INTERVAL '0.001' SECOND`.
+
+  Emits a watermark of the maximum observed timestamp so far minus 1. Rows that have a timestamp bigger or equal to the max timestamp are not late.
+
+- Bounded out of orderness timestamps: `WATERMARK FOR rowtime_column AS rowtime_column - INTERVAL 'string' timeUnit`.
+
+  Emits watermarks, which are the maximum observed timestamp minus the specified delay, e.g., `WATERMARK FOR rowtime_column AS rowtime_column - INTERVAL '5' SECOND` is a 5 seconds delayed watermark strategy.
+
+{% highlight sql %}
 CREATE TABLE Orders (
     user BIGINT,
     product STRING,
     order_time TIMESTAMP(3),
     WATERMARK FOR order_time AS order_time - INTERVAL '5' SECOND
 ) WITH ( . . . );
-```
+{% endhighlight %}
 
-**PARTITIONED BY**
+### `PRIMARY KEY`
 
-根据指定的列对已经创建的表进行分区。若表使用 filesystem sink ，则将会为每个分区创建一个目录。
+Primary key constraint is a hint for Flink to leverage for optimizations. It tells that a column or a set of columns of a table or a view are unique and they **do not** contain null.
+Neither of columns in a primary can be nullable. Primary key therefore uniquely identify a row in a table.
+
+Primary key constraint can be either declared along with a column definition (a column constraint) or as a single line (a table constraint).
+For both cases, it should only be declared as a singleton. If you define multiple primary key constraints at the same time, an exception would be thrown.
+
+**Validity Check**
+
+SQL standard specifies that a constraint can either be `ENFORCED` or `NOT ENFORCED`. This controls if the constraint checks are performed on the incoming/outgoing data.
+Flink does not own the data therefore the only mode we want to support is the `NOT ENFORCED` mode.
+It is up to the user to ensure that the query enforces key integrity.
+
+Flink will assume correctness of the primary key by assuming that the columns nullability is aligned with the columns in primary key. Connectors should ensure those are aligned.
+
+**Notes:** In a CREATE TABLE statement, creating a primary key constraint will alter the columns nullability, that means, a column with primary key constraint is not nullable.
+
+### `PARTITIONED BY`
+
+Partition the created table by the specified columns. A directory is created for each partition if this table is used as a filesystem sink.
+
+### `WITH` Options
+
+Table properties used to create a table source/sink. The properties are usually used to find and create the underlying connector.
+
+The key and value of expression `key1=val1` should both be string literal. See details in [Connect to External Systems]({% link dev/table/connectors/index.md %}) for all the supported table properties of different connectors.
+
+**Notes:** The table name can be of three formats: 1. `catalog_name.db_name.table_name` 2. `db_name.table_name` 3. `table_name`. For `catalog_name.db_name.table_name`, the table would be registered into metastore with catalog named "catalog_name" and database named "db_name"; for `db_name.table_name`, the table would be registered into the current catalog of the execution table environment and database named "db_name"; for `table_name`, the table would be registered into the current catalog and database of the execution table environment.
+
+**Notes:** The table registered with `CREATE TABLE` statement can be used as both table source and table sink, we can not decide if it is used as a source or sink until it is referenced in the DMLs.
+
+### `LIKE`
+
+The `LIKE` clause is a variant/combination of SQL features (Feature T171, “LIKE clause in table definition” and Feature T173, “Extended LIKE clause in table definition”). The clause can be used to create a table based on a definition of an existing table. Additionally, users
+can extend the original table or exclude certain parts of it. In contrast to the SQL standard the clause must be defined at the top-level of a CREATE statement. That is because the clause applies to multiple parts of the definition and not only to the schema part.
+
+You can use the clause to reuse (and potentially overwrite) certain connector properties or add watermarks to tables defined externally. For example, you can add a watermark to a table defined in Apache Hive. 
+
+Consider the example statement below:
+{% highlight sql %}
+CREATE TABLE Orders (
+    user BIGINT,
+    product STRING,
+    order_time TIMESTAMP(3)
+) WITH ( 
+    'connector' = 'kafka',
+    'scan.startup.mode' = 'earliest-offset'
+);
+
+CREATE TABLE Orders_with_watermark (
+    -- Add watermark definition
+    WATERMARK FOR order_time AS order_time - INTERVAL '5' SECOND 
+) WITH (
+    -- Overwrite the startup-mode
+    'scan.startup.mode' = 'latest-offset'
+)
+LIKE Orders;
+{% endhighlight %}
+
+The resulting table `Orders_with_watermark` will be equivalent to a table created with a following statement:
+{% highlight sql %}
+CREATE TABLE Orders_with_watermark (
+    user BIGINT,
+    product STRING,
+    order_time TIMESTAMP(3),
+    WATERMARK FOR order_time AS order_time - INTERVAL '5' SECOND 
+) WITH (
+    'connector' = 'kafka',
+    'scan.startup.mode' = 'latest-offset'
+);
+{% endhighlight %}
+
+The merging logic of table features can be controlled with `like options`.
+
+You can control the merging behavior of:
+
+* CONSTRAINTS - constraints such as primary and unique keys
+* GENERATED - computed columns
+* METADATA - metadata columns
+* OPTIONS - connector options that describe connector and format properties
+* PARTITIONS - partition of the tables
+* WATERMARKS - watermark declarations
+
+with three different merging strategies:
+
+* INCLUDING - Includes the feature of the source table, fails on duplicate entries, e.g. if an option with the same key exists in both tables.
+* EXCLUDING - Does not include the given feature of the source table.
+* OVERWRITING - Includes the feature of the source table, overwrites duplicate entries of the source table with properties of the new table, e.g. if an option with the same key exists in both tables, the one from the current statement will be used.
+
+Additionally, you can use the `INCLUDING/EXCLUDING ALL` option to specify what should be the strategy if there was no specific strategy defined, i.e. if you use `EXCLUDING ALL INCLUDING WATERMARKS` only the watermarks will be included from the source table.
+
+Example:
+{% highlight sql %}
+-- A source table stored in a filesystem
+CREATE TABLE Orders_in_file (
+    user BIGINT,
+    product STRING,
+    order_time_string STRING,
+    order_time AS to_timestamp(order_time)
+    
+)
+PARTITIONED BY user 
+WITH ( 
+    'connector' = 'filesystem'
+    'path' = '...'
+);
+
+-- A corresponding table we want to store in kafka
+CREATE TABLE Orders_in_kafka (
+    -- Add watermark definition
+    WATERMARK FOR order_time AS order_time - INTERVAL '5' SECOND 
+) WITH (
+    'connector': 'kafka'
+    ...
+)
+LIKE Orders_in_file (
+    -- Exclude everything besides the computed columns which we need to generate the watermark for.
+    -- We do not want to have the partitions or filesystem options as those do not apply to kafka. 
+    EXCLUDING ALL
+    INCLUDING GENERATED
+);
+{% endhighlight %}
+
+If you provide no like options, `INCLUDING ALL OVERWRITING OPTIONS` will be used as a default.
+
+**NOTE** You cannot control the behavior of merging physical columns. Those will be merged as if you applied the `INCLUDING` strategy.
+
+**NOTE** The `source_table` can be a compound identifier. Thus, it can be a table from a different catalog or database: e.g. `my_catalog.my_db.MyTable` specifies table `MyTable` from catalog `MyCatalog` and database `my_db`; `my_db.MyTable` specifies table `MyTable` from current catalog and database `my_db`.
+
+{% top %}
+
+## CREATE CATALOG
+
+{% highlight sql %}
+CREATE CATALOG catalog_name
+  WITH (key1=val1, key2=val2, ...)
+{% endhighlight %}
+
+Create a catalog with the given catalog properties. If a catalog with the same name already exists, an exception is thrown.
 
 **WITH OPTIONS**
 
-表属性用于创建 table source/sink ，一般用于寻找和创建底层的连接器。
+Catalog properties used to store extra information related to this catalog.
+The key and value of expression `key1=val1` should both be string literal.
 
-表达式 `key1=val1` 的键和值必须为字符串文本常量。请参考 [连接外部系统](../../table/connect.html) 了解不同连接器所支持的属性。
-
-**注意：** 表名可以为以下三种格式 1. `catalog_name.db_name.table_name` 2. `db_name.table_name` 3. `table_name`。使用`catalog_name.db_name.table_name` 的表将会与名为 "catalog_name" 的 catalog 和名为 "db_name" 的数据库一起注册到 metastore 中。使用 `db_name.table_name` 的表将会被注册到当前执行的 table environment 中的 catalog 且数据库会被命名为 "db_name"；对于 `table_name`, 数据表将会被注册到当前正在运行的catalog和数据库中。
-
-**注意：** 使用 `CREATE TABLE` 语句注册的表均可用作 table source 和 table sink。 在被 DML 语句引用前，我们无法决定其实际用于 source 抑或是 sink。
+Check out more details at [Catalogs]({% link dev/table/catalogs.md %}).
 
 {% top %}
 
 ## CREATE DATABASE
 
-```sqlite-psql
+{% highlight sql %}
 CREATE DATABASE [IF NOT EXISTS] [catalog_name.]db_name
   [COMMENT database_comment]
   WITH (key1=val1, key2=val2, ...)
-```
+{% endhighlight %}
 
-根据给定的表属性创建数据库。若数据库中已存在同名表会抛出异常。
+Create a database with the given database properties. If a database with the same name already exists in the catalog, an exception is thrown.
 
 **IF NOT EXISTS**
 
-若数据库已经存在，则不会进行任何操作。
+If the database already exists, nothing happens.
 
 **WITH OPTIONS**
 
-数据库属性一般用于存储关于这个数据库额外的信息。
-表达式 `key1=val1` 中的键和值都需要是字符串文本常量。
+Database properties used to store extra information related to this database.
+The key and value of expression `key1=val1` should both be string literal.
+
+{% top %}
+
+## CREATE VIEW
+{% highlight sql %}
+CREATE [TEMPORARY] VIEW [IF NOT EXISTS] [catalog_name.][db_name.]view_name
+  [{columnName [, columnName ]* }] [COMMENT view_comment]
+  AS query_expression
+{% endhighlight %}
+
+Create a view with the given query expression. If a view with the same name already exists in the catalog, an exception is thrown.
+
+**TEMPORARY**
+
+Create temporary view that has catalog and database namespaces and overrides views.
+
+**IF NOT EXISTS**
+
+If the view already exists, nothing happens.
 
 {% top %}
 
 ## CREATE FUNCTION
-```sqlite-psql
-CREATE [TEMPORARY|TEMPORARY SYSTEM] FUNCTION
-  [IF NOT EXISTS] [[catalog_name.]db_name.]function_name
-  AS identifier [LANGUAGE JAVA|SCALA]
-```
+{% highlight sql%}
+CREATE [TEMPORARY|TEMPORARY SYSTEM] FUNCTION 
+  [IF NOT EXISTS] [catalog_name.][db_name.]function_name 
+  AS identifier [LANGUAGE JAVA|SCALA|PYTHON]
+{% endhighlight %}
 
-创建一个有 catalog 和数据库命名空间的 catalog function ，其需要指定 JAVA / SCALA 或其他 language tag 完整的 classpath。 若 catalog 中，已经有同名的函数注册了，则无法注册。
+Create a catalog function that has catalog and database namespaces with the identifier and optional language tag. If a function with the same name already exists in the catalog, an exception is thrown.
+
+If the language tag is JAVA/SCALA, the identifier is the full classpath of the UDF. For the implementation of Java/Scala UDF, please refer to [User-defined Functions]({% link dev/table/functions/udfs.md %}) for more details.
+
+If the language tag is PYTHON, the identifier is the fully qualified name of the UDF, e.g. `pyflink.table.tests.test_udf.add`. For the implementation of Python UDF, please refer to [Python UDFs]({% link dev/python/table-api-users-guide/udfs/python_udfs.md %}) for more details.
+
+If the language tag is PYTHON, however the current program is written in Java/Scala or pure SQL, then you need to [configure the Python dependencies]({% link dev/python/table-api-users-guide/dependency_management.md %}#python-dependency-in-javascala-program).
 
 **TEMPORARY**
 
-创建一个有 catalog 和数据库命名空间的临时 catalog function ，并覆盖原有的 catalog function 。
+Create temporary catalog function that has catalog and database namespaces and overrides catalog functions.
 
 **TEMPORARY SYSTEM**
 
-创建一个没有数据库命名空间的临时系统 catalog function ，并覆盖系统内置的函数。
+Create temporary system function that has no namespace and overrides built-in functions
 
 **IF NOT EXISTS**
 
-若该函数已经存在，则不会进行任何操作。
+If the function already exists, nothing happens.
 
-**LANGUAGE JAVA\|SCALA**
+**LANGUAGE JAVA\|SCALA\|PYTHON**
 
-Language tag 用于指定 Flink runtime 如何执行这个函数。目前，只支持 JAVA 和 SCALA，且函数的默认语言为 JAVA。
-
+Language tag to instruct Flink runtime how to execute the function. Currently only JAVA, SCALA and PYTHON are supported, the default language for a function is JAVA. 

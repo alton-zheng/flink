@@ -1,167 +1,357 @@
-# Scala API Extensions
+---
+title: "Scala API Extensions"
+nav-parent_id: streaming
+nav-pos: 200
+---
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
 
-为了在Scala和Java api之间保持相当程度的一致性，在批处理和流处理的标准api中省略了一些允许Scala具有高级表达能力的特性。
+  http://www.apache.org/licenses/LICENSE-2.0
 
-如果您想享受完整的Scala体验，您可以选择选择通过隐式转换增强Scala API的扩展。
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
 
-要使用所有可用的扩展，您只需为`DataSet API`添加一个简单的导入
+In order to keep a fair amount of consistency between the Scala and Java APIs, some
+of the features that allow a high-level of expressiveness in Scala have been left
+out from the standard APIs for both batch and streaming.
 
-```scala
+If you want to _enjoy the full Scala experience_ you can choose to opt-in to
+extensions that enhance the Scala API via implicit conversions.
+
+To use all the available extensions, you can just add a simple `import` for the
+DataSet API
+
+{% highlight scala %}
 import org.apache.flink.api.scala.extensions._
-```
+{% endhighlight %}
 
-或 `DataStream API`
-```scala
+or the DataStream API
+
+{% highlight scala %}
 import org.apache.flink.streaming.api.scala.extensions._
-```
+{% endhighlight %}
 
-或者，您可以导入单独的扩展`a-là-carte`来只使用您喜欢的扩展。
+Alternatively, you can import individual extensions _a-là-carte_ to only use those
+you prefer.
 
 ## Accept partial functions
 
-通常，DataSet和DataStream api都不接受用于解构元组、case类或集合的匿名模式匹配函数，如下所示
-```scala
+Normally, both the DataSet and DataStream APIs don't accept anonymous pattern
+matching functions to deconstruct tuples, case classes or collections, like the
+following:
+
+{% highlight scala %}
 val data: DataSet[(Int, String, Double)] = // [...]
 data.map {
   case (id, name, temperature) => // [...]
   // The previous line causes the following compilation error:
   // "The argument types of an anonymous function must be fully known. (SLS 8.5)"
 }
-```
+{% endhighlight %}
 
-这个扩展在DataSet和DataStream Scala API中引入了新的方法，这些方法在扩展的API中具有一对一的对应关系。这些委托方法确实支持匿名模式匹配函数。
+This extension introduces new methods in both the DataSet and DataStream Scala API
+that have a one-to-one correspondence in the extended API. These delegating methods
+do support anonymous pattern matching functions.
 
-### DataSet API
-```
-Method                        Original                           Example
-mapWith                       map (DataSet)                      data.mapWith {
-                                                                   case (_, value) => value.toString
-                                                                 }
-                                                                 
-mapPartitionWith              mapPartition (DataSet)             data.mapPartitionWith {
-                                                                   case head #:: _ => head
-                                                                 }
-                                                                 
-flatMapWith                   flatMap (DataSet)                  data.flatMapWith {
-                                                                   case (_, name, visitTimes) => visitTimes.map(name -> _)
-                                                                 }
-                                                                 
-filterWith                    filter (DataSet)                   data.filterWith {
-                                                                   case Train(_, isOnTime) => isOnTime
-                                                                 }
-                                                                 
-reduceWith                    reduce (DataSet, GroupedDataSet)   data.reduceWith {
-                                                                   case ((_, amount1), (_, amount2)) => amount1 + amount2
-                                                                 }
-                                                                 
-reduceGroupWith               reduceGroup (GroupedDataSet)       data.reduceGroupWith {
-                                                                   case id #:: value #:: _ => id -> value
-                                                                 }
-                                                                 
-groupingBy                    groupBy (DataSet)                  data.groupingBy {
-                                                                   case (id, _, _) => id
-                                                                 }
-                                                                 
-sortGroupWith                 sortGroup (GroupedDataSet)         grouped.sortGroupWith(Order.ASCENDING) {
-                                                                   case House(_, value) => value
-                                                                 }
-                                                                 
-combineGroupWith              combineGroup (GroupedDataSet)      grouped.combineGroupWith {
-                                                                   case header #:: amounts => amounts.sum
-                                                                 }
-                                                                 
-projecting                    apply (JoinDataSet, CrossDataSet)  data1.join(data2).
-                                                                   whereClause(case (pk, _) => pk).
-                                                                   isEqualTo(case (_, fk) => fk).
-                                                                   projecting {
-                                                                     case ((pk, tx), (products, fk)) => tx -> products
-                                                                   }
-                                                                   
-                                                                 data1.cross(data2).projecting {
-                                                                   case ((a, _), (_, b) => a -> b
-                                                                 }
-                                                                 
-projecting                    apply (CoGroupDataSet)             data1.coGroup(data2).
-                                                                   whereClause(case (pk, _) => pk).
-                                                                   isEqualTo(case (_, fk) => fk).
-                                                                   projecting {
-                                                                     case (head1 #:: _, head2 #:: _) => head1 -> head2
-                                                                   }
-                                                                 }
-```
+#### DataSet API
+
+<table class="table table-bordered">
+  <thead>
+    <tr>
+      <th class="text-left" style="width: 20%">Method</th>
+      <th class="text-left" style="width: 20%">Original</th>
+      <th class="text-center">Example</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <tr>
+      <td><strong>mapWith</strong></td>
+      <td><strong>map (DataSet)</strong></td>
+      <td>
+{% highlight scala %}
+data.mapWith {
+  case (_, value) => value.toString
+}
+{% endhighlight %}
+      </td>
+    </tr>
+    <tr>
+      <td><strong>mapPartitionWith</strong></td>
+      <td><strong>mapPartition (DataSet)</strong></td>
+      <td>
+{% highlight scala %}
+data.mapPartitionWith {
+  case head #:: _ => head
+}
+{% endhighlight %}
+      </td>
+    </tr>
+    <tr>
+      <td><strong>flatMapWith</strong></td>
+      <td><strong>flatMap (DataSet)</strong></td>
+      <td>
+{% highlight scala %}
+data.flatMapWith {
+  case (_, name, visitTimes) => visitTimes.map(name -> _)
+}
+{% endhighlight %}
+      </td>
+    </tr>
+    <tr>
+      <td><strong>filterWith</strong></td>
+      <td><strong>filter (DataSet)</strong></td>
+      <td>
+{% highlight scala %}
+data.filterWith {
+  case Train(_, isOnTime) => isOnTime
+}
+{% endhighlight %}
+      </td>
+    </tr>
+    <tr>
+      <td><strong>reduceWith</strong></td>
+      <td><strong>reduce (DataSet, GroupedDataSet)</strong></td>
+      <td>
+{% highlight scala %}
+data.reduceWith {
+  case ((_, amount1), (_, amount2)) => amount1 + amount2
+}
+{% endhighlight %}
+      </td>
+    </tr>
+    <tr>
+      <td><strong>reduceGroupWith</strong></td>
+      <td><strong>reduceGroup (GroupedDataSet)</strong></td>
+      <td>
+{% highlight scala %}
+data.reduceGroupWith {
+  case id #:: value #:: _ => id -> value
+}
+{% endhighlight %}
+      </td>
+    </tr>
+    <tr>
+      <td><strong>groupingBy</strong></td>
+      <td><strong>groupBy (DataSet)</strong></td>
+      <td>
+{% highlight scala %}
+data.groupingBy {
+  case (id, _, _) => id
+}
+{% endhighlight %}
+      </td>
+    </tr>
+    <tr>
+      <td><strong>sortGroupWith</strong></td>
+      <td><strong>sortGroup (GroupedDataSet)</strong></td>
+      <td>
+{% highlight scala %}
+grouped.sortGroupWith(Order.ASCENDING) {
+  case House(_, value) => value
+}
+{% endhighlight %}
+      </td>
+    </tr>
+    <tr>
+      <td><strong>combineGroupWith</strong></td>
+      <td><strong>combineGroup (GroupedDataSet)</strong></td>
+      <td>
+{% highlight scala %}
+grouped.combineGroupWith {
+  case header #:: amounts => amounts.sum
+}
+{% endhighlight %}
+      </td>
+    <tr>
+      <td><strong>projecting</strong></td>
+      <td><strong>apply (JoinDataSet, CrossDataSet)</strong></td>
+      <td>
+{% highlight scala %}
+data1.join(data2).
+  whereClause(case (pk, _) => pk).
+  isEqualTo(case (_, fk) => fk).
+  projecting {
+    case ((pk, tx), (products, fk)) => tx -> products
+  }
+
+data1.cross(data2).projecting {
+  case ((a, _), (_, b) => a -> b
+}
+{% endhighlight %}
+      </td>
+    </tr>
+    <tr>
+      <td><strong>projecting</strong></td>
+      <td><strong>apply (CoGroupDataSet)</strong></td>
+      <td>
+{% highlight scala %}
+data1.coGroup(data2).
+  whereClause(case (pk, _) => pk).
+  isEqualTo(case (_, fk) => fk).
+  projecting {
+    case (head1 #:: _, head2 #:: _) => head1 -> head2
+  }
+}
+{% endhighlight %}
+      </td>
+    </tr>
+    </tr>
+  </tbody>
+</table>
+
+#### DataStream API
+
+<table class="table table-bordered">
+  <thead>
+    <tr>
+      <th class="text-left" style="width: 20%">Method</th>
+      <th class="text-left" style="width: 20%">Original</th>
+      <th class="text-center">Example</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <tr>
+      <td><strong>mapWith</strong></td>
+      <td><strong>map (DataStream)</strong></td>
+      <td>
+{% highlight scala %}
+data.mapWith {
+  case (_, value) => value.toString
+}
+{% endhighlight %}
+      </td>
+    </tr>
+    <tr>
+      <td><strong>flatMapWith</strong></td>
+      <td><strong>flatMap (DataStream)</strong></td>
+      <td>
+{% highlight scala %}
+data.flatMapWith {
+  case (_, name, visits) => visits.map(name -> _)
+}
+{% endhighlight %}
+      </td>
+    </tr>
+    <tr>
+      <td><strong>filterWith</strong></td>
+      <td><strong>filter (DataStream)</strong></td>
+      <td>
+{% highlight scala %}
+data.filterWith {
+  case Train(_, isOnTime) => isOnTime
+}
+{% endhighlight %}
+      </td>
+    </tr>
+    <tr>
+      <td><strong>keyingBy</strong></td>
+      <td><strong>keyBy (DataStream)</strong></td>
+      <td>
+{% highlight scala %}
+data.keyingBy {
+  case (id, _, _) => id
+}
+{% endhighlight %}
+      </td>
+    </tr>
+    <tr>
+      <td><strong>mapWith</strong></td>
+      <td><strong>map (ConnectedDataStream)</strong></td>
+      <td>
+{% highlight scala %}
+data.mapWith(
+  map1 = case (_, value) => value.toString,
+  map2 = case (_, _, value, _) => value + 1
+)
+{% endhighlight %}
+      </td>
+    </tr>
+    <tr>
+      <td><strong>flatMapWith</strong></td>
+      <td><strong>flatMap (ConnectedDataStream)</strong></td>
+      <td>
+{% highlight scala %}
+data.flatMapWith(
+  flatMap1 = case (_, json) => parse(json),
+  flatMap2 = case (_, _, json, _) => parse(json)
+)
+{% endhighlight %}
+      </td>
+    </tr>
+    <tr>
+      <td><strong>keyingBy</strong></td>
+      <td><strong>keyBy (ConnectedDataStream)</strong></td>
+      <td>
+{% highlight scala %}
+data.keyingBy(
+  key1 = case (_, timestamp) => timestamp,
+  key2 = case (id, _, _) => id
+)
+{% endhighlight %}
+      </td>
+    </tr>
+    <tr>
+      <td><strong>reduceWith</strong></td>
+      <td><strong>reduce (KeyedStream, WindowedStream)</strong></td>
+      <td>
+{% highlight scala %}
+data.reduceWith {
+  case ((_, sum1), (_, sum2) => sum1 + sum2
+}
+{% endhighlight %}
+      </td>
+    </tr>
+    <tr>
+      <td><strong>projecting</strong></td>
+      <td><strong>apply (JoinedStream)</strong></td>
+      <td>
+{% highlight scala %}
+data1.join(data2).
+  whereClause(case (pk, _) => pk).
+  isEqualTo(case (_, fk) => fk).
+  projecting {
+    case ((pk, tx), (products, fk)) => tx -> products
+  }
+{% endhighlight %}
+      </td>
+    </tr>
+  </tbody>
+</table>
 
 
-### DataStream API
-```
-Method	                      Original	                             Example
-mapWith	                      map (DataStream)	                     data.mapWith {
-		                                                               case (_, value) => value.toString
-		                                                             }
-		                                                             
-flatMapWith	                  flatMap (DataStream)	                 data.flatMapWith {
-		                                                               case (_, name, visits) => visits.map(name -> _)
-		                                                             }
-		                                                             
-filterWith	                  filter (DataStream)	                 data.filterWith {
-		                                                               case Train(_, isOnTime) => isOnTime
-		                                                             }
-		                                                             
-keyingBy	                  keyBy (DataStream)	                 data.keyingBy {
-		                                                               case (id, _, _) => id
-		                                                             }
-		                                                             
-mapWith	                      map (ConnectedDataStream)	             data.mapWith(
-		                                                               map1 = case (_, value) => value.toString,
-		                                                               map2 = case (_, _, value, _) => value + 1
-		                                                             )
-		                                                             
-flatMapWith	                  flatMap (ConnectedDataStream)	         data.flatMapWith(
-		                                                               flatMap1 = case (_, json) => parse(json),
-		                                                               flatMap2 = case (_, _, json, _) => parse(json)
-		                                                             )
-		                                                             
-keyingBy	                  keyBy (ConnectedDataStream)	         data.keyingBy(
-		                                                               key1 = case (_, timestamp) => timestamp,
-		                                                               key2 = case (id, _, _) => id
-		                                                             )
-		                                                             
-reduceWith	                  reduce (KeyedStream, WindowedStream)	 data.reduceWith {
-		                                                               case ((_, sum1), (_, sum2) => sum1 + sum2
-		                                                             }
-		                                                             
-foldWith	                  fold (KeyedStream, WindowedStream)	 data.foldWith(User(bought = 0)) {
-		                                                               case (User(b), (_, items)) => User(b + items.size)
-		                                                             }
-		                                                             
-applyWith	                  apply (WindowedStream)	             data.applyWith(0)(
-		                                                               foldFunction = case (sum, amount) => sum + amount
-		                                                               windowFunction = case (k, w, sum) => // [...]
-                                                             	     )
-                                                             		
-projecting	                  apply (JoinedStream)	                 data1.join(data2).
-		                                                               whereClause(case (pk, _) => pk).
-		                                                               isEqualTo(case (_, fk) => fk).
-		                                                               projecting {
-		                                                                 case ((pk, tx), (products, fk)) => tx -> products
-		                                                             }
-```
 
-有关每个方法的语义的更多信息，请参阅[DataSet](../dev/batch/index.html) 和 [DataStream](../dev/datastream_api.md) API文档。
+For more information on the semantics of each method, please refer to the
+[DataSet]({% link dev/batch/index.md %}) and [DataStream]({% link dev/datastream_api.md %}) API documentation.
 
-要完全使用此扩展，可以添加以下导入:
+To use this extension exclusively, you can add the following `import`:
 
-```scala
+{% highlight scala %}
 import org.apache.flink.api.scala.extensions.acceptPartialFunctions
-```
+{% endhighlight %}
 
-用于 `DataSet` 扩展：
-```scala
+for the DataSet extensions and
+
+{% highlight scala %}
 import org.apache.flink.streaming.api.scala.extensions.acceptPartialFunctions
-```
+{% endhighlight %}
 
-下面的代码片段展示了如何结合使用这些扩展方法(与DataSet API)的最小示例:
+The following snippet shows a minimal example of how to use these extension
+methods together (with the DataSet API):
 
-```scala
+{% highlight scala %}
 object Main {
   import org.apache.flink.api.scala.extensions._
   case class Point(x: Double, y: Double)
@@ -181,4 +371,6 @@ object Main {
     }
   }
 }
-```
+{% endhighlight %}
+
+{% top %}

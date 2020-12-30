@@ -1,43 +1,18 @@
----
-title: "Google Cloud PubSub"
-nav-title: Google Cloud PubSub
-nav-parent_id: connectors
-nav-pos: 7
----
-<!--
-Licensed to the Apache Software Foundation (ASF) under one
-or more contributor license agreements.  See the NOTICE file
-distributed with this work for additional information
-regarding copyright ownership.  The ASF licenses this file
-to you under the Apache License, Version 2.0 (the
-"License"); you may not use this file except in compliance
-with the License.  You may obtain a copy of the License at
-
-  http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing,
-software distributed under the License is distributed on an
-"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-KIND, either express or implied.  See the License for the
-specific language governing permissions and limitations
-under the License.
--->
+# Google Cloud PubSub
 
 这个连接器可向 [Google Cloud PubSub](https://cloud.google.com/pubsub) 读取与写入数据。添加下面的依赖来使用此连接器:
 
-{% highlight xml %}
+```
 <dependency>
   <groupId>org.apache.flink</groupId>
-  <artifactId>flink-connector-gcp-pubsub{{ site.scala_version_suffix }}</artifactId>
-  <version>{{ site.version }}</version>
+  <artifactId>flink-connector-gcp-pubsub_2.11</artifactId>
+  <version>1.12.0</version>
 </dependency>
-{% endhighlight %}
+```
 
-<p style="border-radius: 5px; padding: 5px" class="bg-danger">
-<b>注意</b>：此连接器最近才加到 Flink 里，还未接受广泛测试。
-</p>
+**注意**：此连接器最近才加到 Flink 里，还未接受广泛测试。
 
-注意连接器目前还不是二进制发行版的一部分，添加依赖、打包配置以及集群运行信息请参考[这里]({{ site.baseurl }}/zh/dev/projectsetup/dependencies.html)
+注意连接器目前还不是二进制发行版的一部分，添加依赖、打包配置以及集群运行信息请参考[这里](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/project-configuration.html)
 
 ## Consuming or Producing PubSubMessages
 
@@ -45,15 +20,17 @@ under the License.
 
 ### PubSub SourceFunction
 
-`PubSubSource` 类的对象由构建类来构建: `PubSubSource.newBuilder(...)`
+```
+PubSubSource` 类的对象由构建类来构建: `PubSubSource.newBuilder(...)
+```
 
 有多种可选的方法来创建 PubSubSource，但最低要求是要提供 Google Project、Pubsub 订阅和反序列化 PubSubMessages 的方法。
 
 Example:
 
-<div class="codetabs" markdown="1">
-<div data-lang="java" markdown="1">
-{% highlight java %}
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/connectors/pubsub.html#tab_Java_0)
+
+```
 StreamExecutionEnvironment streamExecEnv = StreamExecutionEnvironment.getExecutionEnvironment();
 
 DeserializationSchema<SomeObject> deserializer = (...);
@@ -64,23 +41,23 @@ SourceFunction<SomeObject> pubsubSource = PubSubSource.newBuilder()
                                                       .build();
 
 streamExecEnv.addSource(source);
-{% endhighlight %}
-</div>
-</div>
+```
 
 当前还不支持 PubSub 的 source functions [pulls](https://cloud.google.com/pubsub/docs/pull) messages 和 [push endpoints](https://cloud.google.com/pubsub/docs/push)。
 
 ### PubSub Sink
 
-`PubSubSink` 类的对象由构建类来构建: `PubSubSink.newBuilder(...)`
+```
+PubSubSink` 类的对象由构建类来构建: `PubSubSink.newBuilder(...)
+```
 
 构建类的使用方式与 PubSubSource 类似。
 
 Example:
 
-<div class="codetabs" markdown="1">
-<div data-lang="java" markdown="1">
-{% highlight java %}
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/connectors/pubsub.html#tab_Java_1)
+
+```
 DataStream<SomeObject> dataStream = (...);
 
 SerializationSchema<SomeObject> serializationSchema = (...);
@@ -91,9 +68,7 @@ SinkFunction<SomeObject> pubsubSink = PubSubSink.newBuilder()
                                                 .build()
 
 dataStream.addSink(pubsubSink);
-{% endhighlight %}
-</div>
-</div>
+```
 
 ### Google Credentials
 
@@ -109,9 +84,9 @@ dataStream.addSink(pubsubSink);
 
 下面的例子展示了如何使用 source 来从仿真器读取信息并发送回去：
 
-<div class="codetabs" markdown="1">
-<div data-lang="java" markdown="1">
-{% highlight java %}
+- [**Java**](https://ci.apache.org/projects/flink/flink-docs-release-1.12/zh/dev/connectors/pubsub.html#tab_Java_2)
+
+```
 String hostAndPort = "localhost:1234";
 DeserializationSchema<SomeObject> deserializationSchema = (...);
 SourceFunction<SomeObject> pubsubSource = PubSubSource.newBuilder()
@@ -126,14 +101,12 @@ SinkFunction<SomeObject> pubsubSink = PubSubSink.newBuilder()
                                                 .withProjectName("my-fake-project")
                                                 .withSubscriptionName("subscription")
                                                 .withHostAndPortForEmulator(hostAndPort)
-                                                .build()
+                                                .build();
 
 StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 env.addSource(pubsubSource)
    .addSink(pubsubSink);
-{% endhighlight %}
-</div>
-</div>
+```
 
 ### 至少一次语义保证
 
@@ -152,5 +125,3 @@ env.addSource(pubsubSource)
 #### SinkFunction
 
 Sink function 会把准备发到 PubSub 的信息短暂地缓存以提高性能。每次 checkpoint 前，它会刷新缓冲区，并且只有当所有信息成功发送到 PubSub 之后，checkpoint 才会成功完成。
-
-{% top %}
