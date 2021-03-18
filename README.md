@@ -39,12 +39,6 @@ Email: alton_z@outlook.com
 
 &nbsp;
 
-&nbsp;
-
----
-
-
-
 -  应用开发
   - DataStream API
     - [ ] [概览](docs/dev/datastream_api.zh.md)
@@ -337,7 +331,6 @@ Email: alton_z@outlook.com
     - [ ] [监控反压](docs/ops/monitoring/back_pressure.zh.md)
   - [ ] [升级应用程序和 Flink 版本](docs/ops/upgrading.zh.md)
   - [ ] [生产就绪情况核对清单](docs/ops/production_ready.zh.md)
-  
   
 -  Flink 开发
   - [ ] [导入 Flink 到 IDE 中](docs/flinkDev/ide_setup.zh.md)
