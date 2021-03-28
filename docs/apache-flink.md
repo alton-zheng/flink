@@ -34,19 +34,19 @@ B、hive 支持parquet格式存储，如果以后使用hiveql 进行查询，也
 
 开启checkpoint可以容错，程序自动重启的时候可以从checkpoint中恢复数据
 
-##  
+&nbsp;
 
-### 7.flink保证Exactly_Once的原理？
+### 7.flink保证 Exactly_Once 的原理？
 
-1.开启checkpoint
+1.开启 checkpoint
 
-2.source支持数据重发
+2. source 支持数据重发
 
-3.sink支持事务，可以分2次提交，如kafka；或者sink支持幂等，可以覆盖之前写入的数据，如redis
+3.sink 支持事务，可以分 2 次提交，如 kafka ；或者 sink 支持幂等，可以覆盖之前写入的数据，如 redis
 
-满足以上三点，可以保证Exactly_Once
+满足以上三点，可以保证 Exactly_Once
 
-##  
+&nbsp;
 
 ### 8.flink的时间形式和窗口形式有几种？有什么区别，你们用在什么场景下的？
 

@@ -10,7 +10,7 @@
     * [x] 教程
         * [Python API](docs/getting-started/tutorials/python_table_api.md)
         * [本地安装](docs/getting-started/tutorials/local_setup.md)
-        * [在Windows 上运行Flink](docs/getting-started/tutorials/flink_on_windows.md)
+        * [在 Windows 上运行 Flink](docs/getting-started/tutorials/flink_on_windows.md)
             * [Batch 示例- java](docs/dev/batch/examples-java.md)
             * [Batch 示例- scala](docs/dev/batch/examples-scala.md)
 * 概念
