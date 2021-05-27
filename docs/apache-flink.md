@@ -218,7 +218,7 @@ Spark的技术理念是使用微批来模拟流的计算,基于Micro-batch,数�
 
 - 时间机制
 
-SparkStreaming只支持处理时间, 折中地使用processing time来近似地实现event time相关的业务。显然，使用processing time模拟event time必然会产生一些误差， 特别是在产生数据堆积的时候，误差则更明显，甚至导致计算结果不可用
+SparkStreaming 只支持处理时间, 折中地使用 processing time 来近似地实现 event time 相关的业务。显然，使用 processing time 模拟 event time 必然会产生一些误差， 特别是在产生数据堆积的时候，误差则更明显，甚至导致计算结果不可用
  Structured streaming 支持处理时间和事件时间，同时支持 watermark 机制处理滞后数据
  Flink 支持三种时间机制：事件时间，注入时间，处理时间，同时支持 watermark 机制处理迟到的数据,说明Flink在处理乱序大实时数据的时候,优势比较大
 
